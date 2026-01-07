@@ -827,21 +827,209 @@ echo "Report: output/band_analysis_report.html"
 
 ---
 
-## 15. Open Questions
+## 15. Knowledge Base
+
+### 15.1 Purpose
+
+A centralized repository of Qualcomm documents, KBAs, carrier specifications, and domain knowledge that:
+- Improves Stage 1 parsing accuracy
+- Enriches Stage 2 Claude review with domain-specific context
+- Grows over time as more documents are added
+
+### 15.2 Architecture
+
+```
++-----------------------------------------------------------------------------+
+|                            KNOWLEDGE BASE                                   |
++-----------------------------------------------------------------------------+
+|                                                                             |
+|   docs/knowledge_base/                                                      |
+|   |                                                                         |
+|   +-- qualcomm_kbas/           # Qualcomm Knowledge Base Articles           |
+|   |   +-- KBA-201108184431.md  # How to check LTE and NR band               |
+|   |   +-- KBA-220107011510.md  # Disable MDB auto-learning                  |
+|   |   +-- KBA-230421012404.md  # MDB per SUB                                |
+|   |   +-- ...                                                               |
+|   |                                                                         |
+|   +-- band_specifications/     # Band technical specs                       |
+|   |   +-- lte_bands.md         # LTE band frequencies, regions              |
+|   |   +-- nr_bands.md          # NR band frequencies, regions               |
+|   |   +-- band_classes.md      # Band class definitions                     |
+|   |                                                                         |
+|   +-- carrier_info/            # Carrier-specific information               |
+|   |   +-- att.md               # ATT band configs, known issues             |
+|   |   +-- verizon.md           # Verizon band configs                       |
+|   |   +-- tmobile.md           # T-Mobile band configs                      |
+|   |                                                                         |
+|   +-- known_issues/            # Common issues and solutions                |
+|   |   +-- anomaly_patterns.md  # Known anomaly patterns                     |
+|   |   +-- troubleshooting.md   # Common troubleshooting steps               |
+|   |                                                                         |
+|   +-- mdb_docs/                # MDB-related documentation                  |
+|       +-- MDB_Understanding.md # MDB structure and usage                    |
+|       +-- mcc_country_map.md   # MCC to country mapping                     |
+|                                                                             |
++-----------------------------------------------------------------------------+
+```
+
+### 15.3 Knowledge Index
+
+A JSON index file that catalogs all knowledge base content for quick lookup:
+
+**knowledge_index.json:**
+```json
+{
+  "version": "1.0",
+  "last_updated": "2026-01-07",
+  "entries": [
+    {
+      "id": "kb001",
+      "title": "MDB Understanding",
+      "file": "mdb_docs/MDB_Understanding.md",
+      "topics": ["mdb", "mcc2bands", "band_filtering", "auto_learning"],
+      "keywords": ["0-indexed", "mcc", "location", "policyman"],
+      "use_for": ["mdb_anomalies", "band_filtering_issues"]
+    },
+    {
+      "id": "kb002",
+      "title": "NR Band n75 SDL Issues",
+      "file": "known_issues/n75_sdl.md",
+      "topics": ["nr_bands", "sdl", "anomaly"],
+      "keywords": ["n75", "1500MHz", "supplemental_downlink"],
+      "use_for": ["n75_anomaly"]
+    },
+    {
+      "id": "kb003",
+      "title": "ATT Carrier Configuration",
+      "file": "carrier_info/att.md",
+      "topics": ["carrier", "att", "band_exclusions"],
+      "keywords": ["firstnet", "b14", "b29", "carrier_policy"],
+      "use_for": ["carrier_filtering", "att_issues"]
+    }
+  ]
+}
+```
+
+### 15.4 How Knowledge Base is Used
+
+```
++------------------+     +-------------------+     +--------------------+
+|  User adds       |     |  Knowledge Base   |     |  Analysis          |
+|  Qualcomm docs   | --> |  Indexer scans    | --> |  Tools use KB      |
+|  to KB folder    |     |  and updates JSON |     |  for insights      |
++------------------+     +-------------------+     +--------------------+
+                                                            |
+                         +----------------------------------+
+                         |
+          +--------------+---------------+
+          |                              |
+          v                              v
++-------------------+          +-------------------+
+| STAGE 1: Code     |          | STAGE 2: Claude   |
+|                   |          |                   |
+| - Parsing rules   |          | - prompt.txt      |
+|   from KB         |          |   includes        |
+| - Known patterns  |          |   relevant KB     |
+| - Band specs      |          |   excerpts        |
++-------------------+          +-------------------+
+```
+
+### 15.5 Integration with prompt.txt
+
+When anomalies are detected, relevant KB content is included in prompt.txt:
+
+```
+================================================================================
+                    BAND ANALYSIS - CLAUDE REVIEW REQUEST
+================================================================================
+
+... [SECTION 1-3 as before] ...
+
+--------------------------------------------------------------------------------
+SECTION 5: RELEVANT KNOWLEDGE BASE CONTEXT
+--------------------------------------------------------------------------------
+
+[KB: MDB Understanding]
+MDB uses 0-indexed bands for LTE: MDB value 0 = B1, value 2 = B3
+NR bands appear to be 1-indexed (actual band numbers)
+Auto-learning can add bands not originally in mcc2bands.xml
+
+[KB: NR Band n75 SDL Issues]
+Band n75 (1500 MHz) is Supplemental Downlink only.
+Common issue: n75 appearing without RFC support indicates:
+- Wrong RFC file for device variant
+- MBN override adding unsupported band
+- EFS persisted items corruption
+
+[KB: ATT Carrier Configuration]
+ATT typically excludes: B7 (GW), B8, B9 for US market
+FirstNet uses B14 exclusively
+...
+
+--------------------------------------------------------------------------------
+SECTION 6: REVIEW INSTRUCTIONS
+--------------------------------------------------------------------------------
+Use the above knowledge base context to enhance your analysis.
+================================================================================
+```
+
+### 15.6 Knowledge Base Management
+
+| Operation | Command/Action |
+|-----------|----------------|
+| **Add document** | Place file in appropriate KB subfolder |
+| **Update index** | Run `python kb_indexer.py` to refresh knowledge_index.json |
+| **Search KB** | `python kb_search.py --query "n75 anomaly"` |
+| **View KB stats** | `python kb_indexer.py --stats` |
+
+### 15.7 Updated Architecture Components
+
+```
+Band_Combos_Analyzer/
+|
++-- docs/
+|   +-- knowledge_base/              # NEW: Knowledge Base folder
+|   |   +-- qualcomm_kbas/
+|   |   +-- band_specifications/
+|   |   +-- carrier_info/
+|   |   +-- known_issues/
+|   |   +-- mdb_docs/
+|   |   +-- knowledge_index.json     # KB index file
+|   |
+|   +-- Architecture_Design.md
+|   +-- MDB_Understanding.md
+|
++-- src/
+|   +-- knowledge/                   # NEW: KB management modules
+|   |   +-- __init__.py
+|   |   +-- kb_indexer.py            # Index KB documents
+|   |   +-- kb_search.py             # Search KB for relevant content
+|   |   +-- kb_loader.py             # Load KB content for prompt
+|   |
+|   +-- parsers/
+|   +-- core/
+|   +-- output/
+|   +-- main.py
+```
+
+---
+
+## 16. Open Questions
 
 1. **Combo Analysis**: What specific combo information is needed? (Future phase)
 
 ---
 
-## 16. Next Steps
+## 17. Next Steps
 
 1. [x] Review architecture document
 2. [x] Document MDB understanding
 3. [x] Define Claude integration approach (prompt.txt -> Claude CLI)
-4. [ ] Begin implementation when approved
+4. [x] Design Knowledge Base architecture
+5. [ ] Begin implementation when approved
 
 ---
 
-*Document Version: 2.2*
-*Last Updated: Added QXDM log input section with QCAT future enhancement*
+*Document Version: 2.3*
+*Last Updated: Added Knowledge Base section for domain knowledge management*
 *Status: PENDING FINAL REVIEW*
