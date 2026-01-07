@@ -795,15 +795,45 @@ echo "Report: output/band_analysis_report.html"
 
 ---
 
-## 14. Open Questions
+## 14. QXDM Log Input
 
-1. **QXDM Logs**: Which specific QXDM log packets besides 0x1CCA are needed?
+### 14.1 Current Approach (Phase 1)
+- User provides a `.txt` file containing 0x1CCA log content
+- Manually copied/exported from QXDM
 
-2. **Combo Analysis**: What specific combo information is needed? (Future phase)
+**Expected .txt file format:**
+```
+[0x1CCA] PM RF Band Info
+  LTE Bands: 0x00000000 0x0007EFFF 0x00000000 0x00000000
+  NR SA Bands: 0x00000000 0x001F0FFF 0x00000000 0x00000000
+  NR NSA Bands: 0x00000000 0x001F0FFF 0x00000000 0x00000000
+```
+
+### 14.2 Future Enhancement: QCAT Integration
+
+```
++------------------+      +------------+      +------------------+      +----------+
+| Raw QXDM Log     | ---> | QCAT Tool  | ---> | Converted .txt   | ---> | Parser   |
+| (.isf / .dlf)    |      | (Qualcomm) |      | (Full log text)  |      | extracts |
++------------------+      +------------+      +------------------+      | 0x1CCA   |
+                                                                        +----------+
+```
+
+**Future capabilities:**
+- Accept raw QXDM log files (.isf, .dlf)
+- Automatically invoke QCAT to convert to .txt
+- Extract multiple log types (0x1CCA, and others as needed)
+- Parse extracted logs
 
 ---
 
-## 15. Next Steps
+## 15. Open Questions
+
+1. **Combo Analysis**: What specific combo information is needed? (Future phase)
+
+---
+
+## 16. Next Steps
 
 1. [x] Review architecture document
 2. [x] Document MDB understanding
@@ -812,6 +842,6 @@ echo "Report: output/band_analysis_report.html"
 
 ---
 
-*Document Version: 2.1*
-*Last Updated: Updated Stage 2 to use Claude CLI with prompt.txt*
+*Document Version: 2.2*
+*Last Updated: Added QXDM log input section with QCAT future enhancement*
 *Status: PENDING FINAL REVIEW*
