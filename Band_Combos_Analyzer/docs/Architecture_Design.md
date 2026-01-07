@@ -40,65 +40,94 @@ Based on reference design: `requirements/Basic_design_Image.jfif`
 
 ## 3. Two-Stage Analysis Architecture
 
+### 3.1 High-Level Flow
+
 ```
 +-----------------------------------------------------------------------------+
 |                         BAND ANALYZER TOOL                                  |
 +-----------------------------------------------------------------------------+
 |                                                                             |
+|   STAGE 1: Python Code                    STAGE 2: Claude CLI               |
+|   +---------------------------+           +---------------------------+     |
+|   |                           |           |                           |     |
+|   |  Input Documents          |           |  claude -p \              |     |
+|   |        |                  |           |    --dangerously-skip-    |     |
+|   |        v                  |           |    permissions            |     |
+|   |  Parsers + Band Tracer    |  ------>  |    < prompt.txt           |     |
+|   |        |                  | prompt.txt|                           |     |
+|   |        v                  |           |        |                  |     |
+|   |  Generate prompt.txt      |           |        v                  |     |
+|   |                           |           |  Claude's Expert Review   |     |
+|   +---------------------------+           +---------------------------+     |
+|                                                    |                        |
+|                                                    v                        |
+|                                           +------------------+              |
+|                                           |  FINAL OUTPUT    |              |
+|                                           |  (Console + HTML)|              |
+|                                           +------------------+              |
+|                                                                             |
++-----------------------------------------------------------------------------+
+```
+
+### 3.2 Detailed Architecture
+
+```
++-----------------------------------------------------------------------------+
+|                              STAGE 1: PYTHON CODE                           |
++-----------------------------------------------------------------------------+
+|                                                                             |
 |   +---------------------------------------------------------------------+   |
 |   |                      INPUT DOCUMENTS                                 |   |
 |   |  RFC | HW Filter | Carrier Policy | Generic | MDB | QXDM | UE Cap   |   |
-|   +------------------------------------+----------------------------------------+   |
+|   +------------------------------------+------------------------------------+   |
 |                                        |                                    |
 |                                        v                                    |
 |   +---------------------------------------------------------------------+   |
-|   |                 STAGE 1: AUTOMATED CODE LOGIC                        |   |
-|   |   +---------------------------------------------------------------+ |   |
-|   |   |                      PARSERS                                   | |   |
-|   |   |  RFC | HW Filter | Carrier Policy | Generic | MDB | QXDM | UE | |   |
-|   |   +-----------------------------+---------------------------------+ |   |
-|   |                                 |                                   |   |
-|   |                                 v                                   |   |
-|   |   +---------------------------------------------------------------+ |   |
-|   |   |                  BAND TRACER ENGINE                            | |   |
-|   |   |  - Compare band sets at each stage                             | |   |
-|   |   |  - Identify PASS / FAIL / ANOMALY                              | |   |
-|   |   |  - Generate raw analysis data                                  | |   |
-|   |   +-----------------------------+---------------------------------+ |   |
-|   |                                 |                                   |   |
-|   |                                 v                                   |   |
-|   |   +---------------------------------------------------------------+ |   |
-|   |   |              RAW ANALYSIS RESULTS                              | |   |
-|   |   |  - Band-by-band status matrix                                  | |   |
-|   |   |  - Detected anomalies list                                     | |   |
-|   |   |  - Filtering points identified                                 | |   |
-|   |   +---------------------------------------------------------------+ |   |
+|   |                           PARSERS                                    |   |
+|   |  RFC | HW Filter | Carrier Policy | Generic | MDB | QXDM | UE Cap   |   |
+|   +------------------------------------+------------------------------------+   |
+|                                        |                                    |
+|                                        v                                    |
+|   +---------------------------------------------------------------------+   |
+|   |                      BAND TRACER ENGINE                              |   |
+|   |  - Compare band sets at each stage                                   |   |
+|   |  - Identify PASS / FAIL / ANOMALY                                    |   |
+|   |  - Generate raw analysis data                                        |   |
+|   +------------------------------------+------------------------------------+   |
+|                                        |                                    |
+|                                        v                                    |
+|   +---------------------------------------------------------------------+   |
+|   |                    PROMPT GENERATOR                                  |   |
+|   |  - Format raw analysis as structured prompt                          |   |
+|   |  - Include document context                                          |   |
+|   |  - Add instructions for Claude review                                |   |
+|   |  - Output: prompt.txt                                                |   |
+|   +---------------------------------------------------------------------+   |
+|                                        |                                    |
++----------------------------------------|------------------------------------+
+                                         |
+                                         v
+                                  [ prompt.txt ]
+                                         |
+                                         v
++-----------------------------------------------------------------------------+
+|                           STAGE 2: CLAUDE CLI                               |
++-----------------------------------------------------------------------------+
+|                                                                             |
+|   Command: claude -p --dangerously-skip-permissions < prompt.txt            |
+|                                                                             |
+|   +---------------------------------------------------------------------+   |
+|   |                    CLAUDE'S REVIEW                                   |   |
+|   |  - Validate automated findings                                       |   |
+|   |  - Explain WHY bands are filtered (domain knowledge)                 |   |
+|   |  - Identify root causes of anomalies                                 |   |
+|   |  - Catch edge cases code might miss                                  |   |
+|   |  - Provide actionable recommendations                                |   |
 |   +---------------------------------------------------------------------+   |
 |                                        |                                    |
 |                                        v                                    |
 |   +---------------------------------------------------------------------+   |
-|   |                 STAGE 2: CLAUDE AI REVIEW                            |   |
-|   |   +---------------------------------------------------------------+ |   |
-|   |   |                 INTELLIGENT ANALYSIS                           | |   |
-|   |   |  - Validate automated findings                                 | |   |
-|   |   |  - Explain WHY bands are filtered (domain knowledge)           | |   |
-|   |   |  - Identify root causes of anomalies                           | |   |
-|   |   |  - Catch edge cases code might miss                            | |   |
-|   |   |  - Provide recommendations                                     | |   |
-|   |   +-----------------------------+---------------------------------+ |   |
-|   |                                 |                                   |   |
-|   |                                 v                                   |   |
-|   |   +---------------------------------------------------------------+ |   |
-|   |   |                CLAUDE'S INSIGHTS                               | |   |
-|   |   |  - Expert commentary per band/anomaly                          | |   |
-|   |   |  - Contextual explanations                                     | |   |
-|   |   |  - Actionable recommendations                                  | |   |
-|   |   +---------------------------------------------------------------+ |   |
-|   +---------------------------------------------------------------------+   |
-|                                        |                                    |
-|                                        v                                    |
-|   +---------------------------------------------------------------------+   |
-|   |                      FINAL REPORT                                    |   |
+|   |                      FINAL OUTPUT                                    |   |
 |   |       +-------------------+       +-------------------+              |   |
 |   |       |  CONSOLE OUTPUT   |       |   HTML REPORT     |              |   |
 |   |       |  (Display)        |       |   (Download)      |              |   |
@@ -106,6 +135,19 @@ Based on reference design: `requirements/Basic_design_Image.jfif`
 |   +---------------------------------------------------------------------+   |
 |                                                                             |
 +-----------------------------------------------------------------------------+
+```
+
+### 3.3 Execution Flow
+
+```bash
+# Step 1: Run Python tool to generate prompt
+python band_analyzer.py --rfc rfc.xml --hw hw_filter.xml ... --output prompt.txt
+
+# Step 2: Pipe prompt to Claude CLI for review
+claude -p --dangerously-skip-permissions < prompt.txt > claude_review.txt
+
+# Step 3: (Optional) Generate final HTML report
+python generate_report.py --stage1 prompt.txt --stage2 claude_review.txt
 ```
 
 ---
@@ -268,7 +310,7 @@ The tool can work with **ANY subset** of documents:
 
 ---
 
-## 7. Stage 2: Claude AI Review
+## 7. Stage 2: Claude CLI Review
 
 ### 7.1 Purpose
 - Validate automated findings with domain expertise
@@ -276,7 +318,76 @@ The tool can work with **ANY subset** of documents:
 - Identify root causes of anomalies
 - Offer actionable recommendations
 
-### 7.2 Claude's Review Areas
+### 7.2 Execution Command
+
+```bash
+claude -p --dangerously-skip-permissions < prompt.txt > claude_review.txt
+```
+
+### 7.3 prompt.txt Structure
+
+The prompt.txt generated by Stage 1 contains:
+
+```
+================================================================================
+                    BAND ANALYSIS - CLAUDE REVIEW REQUEST
+================================================================================
+
+You are an expert in Qualcomm modem band configuration and RF analysis.
+Review the following automated band analysis and provide your expert insights.
+
+--------------------------------------------------------------------------------
+SECTION 1: DOCUMENT STATUS
+--------------------------------------------------------------------------------
+[OK]      RFC XML                    - Loaded (31 LTE, 26 NR bands)
+[OK]      HW Band Filtering          - Loaded
+[MISSING] Carrier Policy             - Not provided
+[OK]      Generic Restrictions       - Loaded
+[OK]      MDB Config                 - Loaded (MCC: 310)
+[OK]      QXDM Log (0x1CCA)          - Loaded (25 LTE, 20 NR SA bands)
+[OK]      UE Capability              - Loaded
+
+--------------------------------------------------------------------------------
+SECTION 2: AUTOMATED ANALYSIS RESULTS
+--------------------------------------------------------------------------------
+
+LTE BAND TRACING:
+Band   RFC    HW     Carrier  Generic  MDB    QXDM   UE_Cap   Status
+--------------------------------------------------------------------------------
+B1     PASS   PASS   N/A      PASS     PASS   PASS   PASS     ENABLED
+B7     PASS   PASS   N/A      PASS     PASS   FAIL   FAIL     MISSING_IN_QXDM
+B38    PASS   PASS   N/A      PASS     PASS   PASS   PASS     ENABLED
+...
+
+NR SA BAND TRACING:
+Band   RFC    HW     Carrier  Generic  MDB    QXDM   UE_Cap   Status
+--------------------------------------------------------------------------------
+n1     PASS   PASS   N/A      PASS     PASS   PASS   PASS     ENABLED
+n75    FAIL   PASS   N/A      PASS     PASS   PASS   PASS     ANOMALY
+...
+
+--------------------------------------------------------------------------------
+SECTION 3: DETECTED ANOMALIES
+--------------------------------------------------------------------------------
+1. NR n75: Present in QXDM and UE Cap but NOT in RFC
+2. LTE B7: Present in RFC but MISSING in QXDM and UE Cap
+3. LTE B68: Present in QXDM but NOT in RFC
+
+--------------------------------------------------------------------------------
+SECTION 4: REVIEW INSTRUCTIONS
+--------------------------------------------------------------------------------
+Please provide:
+1. Validation of the automated findings
+2. Explanation for each anomaly (possible root causes)
+3. Impact assessment for each issue
+4. Recommended actions to resolve anomalies
+5. Overall verdict: Is this configuration safe for deployment?
+
+Format your response with clear sections for each anomaly.
+================================================================================
+```
+
+### 7.4 Claude's Review Areas
 
 | Area | What Claude Analyzes |
 |------|---------------------|
@@ -286,22 +397,15 @@ The tool can work with **ANY subset** of documents:
 | **Edge Cases** | Catch issues code might miss (e.g., 0-indexed vs 1-indexed band numbering) |
 | **Recommendations** | Suggest fixes (e.g., "Check EFS persisted items", "Verify active MBN") |
 
-### 7.3 Claude's Input
-- Raw analysis data from Stage 1
-- All original input documents (for context)
-- Domain knowledge about:
-  - Band numbering conventions
-  - Regional band allocations
-  - Carrier-specific configurations
-  - Common issues and root causes
-
-### 7.4 Claude's Output
+### 7.5 Claude's Output (claude_review.txt)
 
 ```
-[CLAUDE'S REVIEW]
+================================================================================
+                         CLAUDE'S EXPERT REVIEW
+================================================================================
 
-Band n75 - ANOMALY DETECTED
----------------------------
+ANOMALY 1: NR n75 - CRITICAL
+----------------------------
 Finding: Present in QXDM (0x1CCA) and UE Capability, but NOT in RFC.
 
 Analysis:
@@ -314,10 +418,44 @@ Possible Root Causes:
 3. EFS override persisting incorrect band configuration
 4. hardware_band_filtering.xml on device differs from analyzed file
 
+Impact: HIGH - Device advertising capability it may not physically support
+
 Recommendation:
 - Pull active RFC from device: adb shell cat /vendor/rfc/...
 - Clear EFS persisted items: adb shell rm -rf /efs/policyman/persisted_items/
 - Verify MBN version matches expected configuration
+
+--------------------------------------------------------------------------------
+
+ANOMALY 2: LTE B7 - MEDIUM
+--------------------------
+Finding: Present in RFC but missing in QXDM and UE Capability.
+
+Analysis:
+Band B7 (2600 MHz) is supported by hardware but not appearing in device
+logs or network capabilities.
+
+Possible Root Causes:
+1. Carrier Policy filtering B7 (check carrier_policy.xml)
+2. MDB filtering based on MCC (B7 not allowed for current country)
+3. Generic restriction (FCC or regional block)
+
+Impact: MEDIUM - Band capability not being utilized
+
+Recommendation:
+- Provide Carrier Policy XML for complete analysis
+- Check MDB mcc2bands for MCC 310 B7 status
+
+--------------------------------------------------------------------------------
+
+OVERALL VERDICT: NEEDS INVESTIGATION
+------------------------------------
+2 anomalies detected that require resolution before deployment:
+- n75 anomaly is CRITICAL - hardware mismatch suspected
+- B7 missing is MEDIUM - likely configuration issue
+
+Do NOT deploy until n75 anomaly is resolved.
+================================================================================
 ```
 
 ---
@@ -466,22 +604,62 @@ Band_Combos_Analyzer/
 |   |
 |   +-- core/
 |   |   +-- __init__.py
-|   |   +-- band_tracer.py            # Stage 1: Band tracing engine
-|   |   +-- analyzer.py               # Stage 1: Analysis logic
-|   |   +-- claude_reviewer.py        # Stage 2: Claude AI integration
+|   |   +-- band_tracer.py            # Band tracing engine
+|   |   +-- analyzer.py               # Analysis logic
+|   |   +-- prompt_generator.py       # Generate prompt.txt for Claude
 |   |
 |   +-- output/
 |   |   +-- __init__.py
 |   |   +-- console_report.py         # Console output generator
-|   |   +-- html_report.py            # HTML report generator
+|   |   +-- html_report.py            # HTML report generator (combines Stage 1 + 2)
 |   |
-|   +-- main.py                       # Main entry point
+|   +-- main.py                       # Main entry point (Stage 1)
+|   +-- generate_report.py            # Combine Stage 1 + Stage 2 into HTML
 |
 +-- templates/
 |   +-- report_template.html          # HTML report template
 |
 +-- output/
-    +-- (generated HTML reports)
+|   +-- prompt.txt                    # Generated prompt for Claude (Stage 1 output)
+|   +-- claude_review.txt             # Claude's review (Stage 2 output)
+|   +-- (generated HTML reports)
+|
++-- run_analysis.sh                   # Script to run full analysis (Stage 1 + 2)
+```
+
+### 10.1 Execution Scripts
+
+**run_analysis.sh** (Linux/Mac) or **run_analysis.bat** (Windows):
+
+```bash
+#!/bin/bash
+# Full Band Analysis Pipeline
+
+echo "=== STAGE 1: Running Python Analysis ==="
+python src/main.py \
+    --rfc input/rfc.xml \
+    --hw-filter input/hw_band_filtering.xml \
+    --carrier input/carrier_policy.xml \
+    --generic input/generic_restrictions.xml \
+    --mdb input/mcc2bands.xml \
+    --qxdm input/qxdm_log.txt \
+    --ue-cap input/ue_capability.txt \
+    --output output/prompt.txt
+
+echo ""
+echo "=== STAGE 2: Claude CLI Review ==="
+claude -p --dangerously-skip-permissions < output/prompt.txt > output/claude_review.txt
+
+echo ""
+echo "=== STAGE 3: Generating HTML Report ==="
+python src/generate_report.py \
+    --stage1 output/prompt.txt \
+    --stage2 output/claude_review.txt \
+    --output output/band_analysis_report.html
+
+echo ""
+echo "=== COMPLETE ==="
+echo "Report: output/band_analysis_report.html"
 ```
 
 ---
@@ -619,14 +797,9 @@ Band_Combos_Analyzer/
 
 ## 14. Open Questions
 
-1. **Claude Integration**: How to integrate Claude for Stage 2 review?
-   - Option A: Use Claude Code directly (current session)
-   - Option B: Use Claude API with API key
-   - Option C: Generate prompt for manual Claude review
+1. **QXDM Logs**: Which specific QXDM log packets besides 0x1CCA are needed?
 
-2. **QXDM Logs**: Which specific QXDM log packets besides 0x1CCA are needed?
-
-3. **Combo Analysis**: What specific combo information is needed? (Future phase)
+2. **Combo Analysis**: What specific combo information is needed? (Future phase)
 
 ---
 
@@ -634,11 +807,11 @@ Band_Combos_Analyzer/
 
 1. [x] Review architecture document
 2. [x] Document MDB understanding
-3. [ ] Confirm Claude integration approach
+3. [x] Define Claude integration approach (prompt.txt -> Claude CLI)
 4. [ ] Begin implementation when approved
 
 ---
 
-*Document Version: 2.0*
-*Last Updated: Added Two-Stage Analysis (Code + Claude AI Review)*
+*Document Version: 2.1*
+*Last Updated: Updated Stage 2 to use Claude CLI with prompt.txt*
 *Status: PENDING FINAL REVIEW*
