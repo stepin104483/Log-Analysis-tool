@@ -41,11 +41,22 @@ if exist "%UE_CAP_FILE%" set CMD=%CMD% --ue-cap "%UE_CAP_FILE%"
 
 echo Running: %CMD%
 echo.
-%CMD%
+call %CMD%
 
-if %ERRORLEVEL% NEQ 0 (
+set STAGE1_ERROR=%ERRORLEVEL%
+if %STAGE1_ERROR% NEQ 0 (
     echo.
     echo [WARNING] Stage 1 completed with anomalies detected.
+)
+
+REM Verify Stage 1 outputs exist
+if not exist "output\prompt.txt" (
+    echo [ERROR] prompt.txt not found. Stage 1 failed.
+    goto :END
+)
+if not exist "output\analysis_state.json" (
+    echo [ERROR] analysis_state.json not found. Stage 1 failed.
+    goto :END
 )
 
 echo.
@@ -54,16 +65,28 @@ echo [STAGE 2] Claude AI Review
 echo ============================================================
 echo.
 
-if exist "output\prompt.txt" (
-    echo Running Claude CLI review...
-    echo Command: claude -p --dangerously-skip-permissions ^< output\prompt.txt
-    echo.
-    claude -p --dangerously-skip-permissions < output\prompt.txt > output\claude_review.txt
-    echo.
-    echo Claude review saved to: output\claude_review.txt
+echo Running Claude CLI review...
+echo Command: claude -p --dangerously-skip-permissions
+echo.
+
+REM Run Claude CLI and capture output
+call claude -p --dangerously-skip-permissions < output\prompt.txt > output\claude_review.txt 2>&1
+
+if %ERRORLEVEL% NEQ 0 (
+    echo [WARNING] Claude CLI may have encountered an issue.
+)
+
+REM Check if claude_review.txt was created and has content
+if not exist "output\claude_review.txt" (
+    echo [WARNING] Claude review not generated. Proceeding without it.
 ) else (
-    echo [ERROR] prompt.txt not found. Stage 1 may have failed.
-    goto :END
+    for %%A in ("output\claude_review.txt") do (
+        if %%~zA GTR 100 (
+            echo Claude review saved to: output\claude_review.txt
+        ) else (
+            echo [WARNING] Claude review file is too small. May be empty or failed.
+        )
+    )
 )
 
 echo.
@@ -72,11 +95,17 @@ echo [STAGE 3] Generating Integrated HTML Report
 echo ============================================================
 echo.
 
-if exist "output\analysis_state.json" (
-    echo Running report generator...
-    python -m src.merge_report
-) else (
-    echo [ERROR] analysis_state.json not found. Stage 1 may have failed.
+echo Running report generator...
+call python -m src.merge_report
+
+if %ERRORLEVEL% NEQ 0 (
+    echo [ERROR] Stage 3 failed to generate HTML report.
+    goto :END
+)
+
+REM Verify HTML was generated
+if not exist "output\band_analysis_report.html" (
+    echo [ERROR] HTML report was not generated.
     goto :END
 )
 
