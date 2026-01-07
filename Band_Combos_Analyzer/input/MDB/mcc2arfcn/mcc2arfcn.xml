@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mdb  type              = "mcc2arfcn"
+      structure_version = "1"
+      content_version   = "10"
+      owner             = "Qualcomm"
+      time_updated      = "2023/09/13 23:28:36"
+>
+  <entry mcc="310" band="40">
+    <arfcn scs="30KHz">500430 534520</arfcn>
+  </entry>
+  <entry mcc="310" band="76" hard_limit="1">
+    <arfcn scs="30KHz">630000 636666</arfcn>
+	<arfcn scs="30KHz">646666 665333</arfcn>
+  </entry>
+  <entry mcc="310" band="77" hard_limit="1">
+    <arfcn scs="30KHz">630000 636666</arfcn>
+	<arfcn scs="30KHz">646666 665333</arfcn>
+  </entry>
+  <entry mcc="310" band="257" hard_limit="1">
+    <arfcn scs="120KHz 240KHz">2016667 2019999</arfcn>
+    <arfcn scs="120KHz 240KHz">2024999 2033332</arfcn>
+  </entry>
+  <entry mcc="440" band="256" hard_limit="1">
+    <arfcn scs="120KHz 240KHz">2062499 2104165</arfcn>
+  </entry>
+  <entry mcc="460" band="40">
+    <arfcn scs="30KHz">503070 534990</arfcn>
+  </entry>
+  <entry mcc="460" band="77">
+    <arfcn scs="30KHz">626688 639936</arfcn>
+  </entry>
+  <entry mcc="460" band="78">
+    <arfcn scs="30KHz">720288 726432</arfcn>
+  </entry>
+  <entry mcc="*" band="27" hard_limit="1" rf_limit="1">
+    <arfcn scs="15KHz" is_ul="1">140600 146600</arfcn>  
+    <arfcn scs="15KHz" is_ul="1">143600 149600</arfcn>
+    <arfcn scs="15KHz">151600 157600</arfcn>
+    <arfcn scs="15KHz">154600 160600</arfcn>
+  </entry>
+</mdb>

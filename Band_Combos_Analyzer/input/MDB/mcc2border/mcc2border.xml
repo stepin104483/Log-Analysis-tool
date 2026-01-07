@@ -1,0 +1,278 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mdb  type              = "mcc2border"
+      content_version   = "2"
+      owner             = "Qualcomm"
+      time_updated      = "$DateTime: 2023/10/31 04:00:47 $"
+>
+  <!-- USA -->
+  <entry mccs="310 311 312 313 314 315 316">
+    <border_mccs> 302 334 </border_mccs>
+  </entry>
+
+  <!-- Mexico -->
+  <entry mccs="334">
+    <border_mccs> 310 311 312 313 314 315 316 </border_mccs>
+  </entry>
+
+  <!-- Canada -->
+  <entry mccs="302">
+    <border_mccs> 310 311 312 313 314 315 316 </border_mccs>
+  </entry>
+
+  <!-- China -->
+  <entry mccs="460">
+    <border_mccs> 454 455 404 405 450 </border_mccs>
+  </entry>
+
+  <!-- Hong Kong -->
+  <entry mccs="454">
+    <border_mccs> 455 460 </border_mccs>
+  </entry>
+
+  <!-- Macao -->
+  <entry mccs="455">
+    <border_mccs> 454 460 </border_mccs>
+  </entry>
+
+  <!-- India -->
+  <entry mccs="404 405">
+    <border_mccs> 460 410 </border_mccs>
+  </entry>
+
+  <!-- Japan -->
+  <entry mccs="440 441">
+    <border_mccs> 450 </border_mccs>
+  </entry>
+
+  <!-- Korea -->
+  <entry mccs="450">
+    <border_mccs> 440 441 460 </border_mccs>
+  </entry>
+
+  <!-- Pakistan -->
+  <entry mccs="410">
+    <border_mccs> 404 405 </border_mccs>
+  </entry>
+
+  <!-- Netherland -->
+  <entry mccs="204">
+    <border_mccs> 206 262 </border_mccs>
+  </entry>
+
+  <!-- UNITED_KINGDOM -->
+  <entry mccs="234 235">
+    <border_mccs> 272 208 </border_mccs>
+  </entry>
+
+  <!-- Ireland -->
+  <entry mccs="272">
+    <border_mccs> 234 235 </border_mccs>
+  </entry>
+
+  <!-- Norway -->
+  <entry mccs="242">
+    <border_mccs> 240 244 250 </border_mccs>
+  </entry>
+
+  <!-- Russia -->
+  <entry mccs="250">
+    <border_mccs> 242 244 246 247 248 255 257 260 282 289 400 401 428 460 467 </border_mccs>
+  </entry>
+
+ <!-- Greece -->
+  <entry mccs="202">
+    <border_mccs> 276 284 286 294 </border_mccs>
+  </entry>
+
+ <!-- Germany -->
+  <entry mccs="262">
+    <border_mccs>  238 204 206 270 208 228 232 230 260 </border_mccs>
+  </entry>
+
+  <!-- Belarus -->
+  <entry mccs="257">
+    <border_mccs> 260 246 247 250 255 </border_mccs>
+  </entry>
+
+  <!-- Switzerlanad -->
+  <entry mccs="228">
+    <border_mccs> 208 262 232 295 222 </border_mccs>
+  </entry>
+
+  <!-- Sweden -->
+  <entry mccs="240">
+    <border_mccs> 242 238 244 </border_mccs>
+  </entry>
+
+  <!-- Spain -->
+  <entry mccs="214">
+    <border_mccs> 213 266 604 </border_mccs>
+  </entry>
+
+  <!-- Portugal -->
+  <entry mccs="268">
+    <border_mccs> 214 </border_mccs>
+  </entry>
+
+  <!-- Georgia -->
+  <entry mccs="282">
+    <border_mccs> 250 283 286 289 400 </border_mccs>
+  </entry>
+
+  <!-- Armenia -->
+  <entry mccs="283">
+    <border_mccs> 282 286 400 432 </border_mccs>
+  </entry>
+
+  <!-- Turkey -->
+  <entry mccs="286">
+    <border_mccs> 202 282 283 284 400 417 418 432 </border_mccs>
+  </entry>
+
+  <!-- Italy -->
+  <entry mccs="222">
+    <border_mccs> 208 228 232 293 292 </border_mccs>
+  </entry>
+
+  <!-- Belgium -->
+  <entry mccs="206">
+    <border_mccs> 208 262 270 204 </border_mccs>
+  </entry>
+
+ <!-- France -->
+  <entry mccs="208">
+    <border_mccs> 206 270 262 228 222 214 213 234 235 212 </border_mccs>
+  </entry>
+
+  <!-- Austria -->
+  <entry mccs="214">
+    <border_mccs> 262 230 231 260 216 293 219 295 228 </border_mccs>
+  </entry>
+
+  <!-- Hungary -->
+  <entry mccs="216">
+    <border_mccs> 231 255 226 220 219 293 232 </border_mccs>
+  </entry>
+
+  <!-- Denmark -->
+  <entry mccs="238">
+    <border_mccs> 262 240 242 </border_mccs>
+  </entry>
+
+  <!-- Macedonia -->
+  <entry mccs="294">
+    <border_mccs> 221 220 284 202 276 </border_mccs>
+  </entry>
+  
+  <!-- Serbia -->
+  <entry mccs="220">
+    <border_mccs> 294 284 226 216 219 218 297 221 </border_mccs>
+  </entry>
+
+  <!-- Croatia -->
+  <entry mccs="219">
+    <border_mccs> 293 216 220 218 </border_mccs>
+  </entry>
+
+  <!-- Slovenia -->
+  <entry mccs="293">
+    <border_mccs> 222 232 216 219 </border_mccs>
+  </entry>
+
+  <!-- Montenegro -->
+  <entry mccs="297">
+    <border_mccs> 218 220 221 276 </border_mccs>
+  </entry>
+
+  <!-- Albania -->
+  <entry mccs="276">
+    <border_mccs> 297 221 294 202 </border_mccs>
+  </entry>
+
+  <!-- Bulgaria -->
+  <entry mccs="284">
+    <border_mccs> 294 220 226 286 202 </border_mccs>
+  </entry>
+
+  <!-- Romania -->
+  <entry mccs="226">
+    <border_mccs> 220 216 255 259 284 </border_mccs>
+  </entry>
+
+  <!-- Moldova -->
+  <entry mccs="259">
+    <border_mccs> 255 226 </border_mccs>
+  </entry>
+
+  <!-- Ukraine -->
+  <entry mccs="255">
+    <border_mccs> 259 226 260 257 250 </border_mccs>
+  </entry>
+
+  <!-- Poland -->
+  <entry mccs="260">
+    <border_mccs> 262 250 246 257 255 231 230 </border_mccs>
+  </entry>
+
+  <!-- Czechia -->
+  <entry mccs="230">
+    <border_mccs> 262 260 231 232 </border_mccs>
+  </entry>
+
+  <!-- Slovakia -->
+  <entry mccs="231">
+    <border_mccs> 230 260 255 226 216 232 </border_mccs>
+  </entry>
+
+  <!-- Monaco -->
+  <entry mccs="212">
+    <border_mccs> 208 </border_mccs>
+  </entry>
+
+  <!-- Andora -->
+  <entry mccs="213">
+    <border_mccs> 214 208 </border_mccs>
+  </entry>
+
+  <!-- Gibraltar -->
+  <entry mccs="266">
+    <border_mccs> 214 </border_mccs>
+  </entry>
+
+  <!-- San Marino -->
+  <entry mccs="292">
+    <border_mccs> 222 </border_mccs>
+  </entry>
+
+  <!-- Liechtenstein -->
+  <entry mccs="295">
+    <border_mccs> 262 232 228 </border_mccs>
+  </entry>
+
+  <!-- Luxemburg -->
+  <entry mccs="270">
+    <border_mccs> 206 262 208 </border_mccs>
+  </entry>
+
+  <!-- Finland -->
+  <entry mccs="244">
+    <border_mccs> 240 242 250 248 </border_mccs>
+  </entry>
+
+  <!-- Estonia -->
+  <entry mccs="248">
+    <border_mccs> 247 250 244 </border_mccs>
+  </entry>
+
+  <!-- Latvia -->
+  <entry mccs="247">
+    <border_mccs> 246 248 250 257 </border_mccs>
+  </entry>
+
+  <!-- Lithuania -->
+  <entry mccs="246">
+    <border_mccs> 250 247 257 260 </border_mccs>
+  </entry>
+
+</mdb>

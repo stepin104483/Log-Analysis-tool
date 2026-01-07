@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mdb  type              = "polygon2mccs"
+      content_version   = "1"
+      owner             = "Qualcomm"
+      time_updated      = "$DateTime: 2023/10/31 04:00:47 $"
+>
+  <entry name="canada"      mccs="302" />
+  <entry name="us_mainland" mccs="310 311 312 313 314 315 316" />
+  <entry name="hawaii"      mccs="310 311 312 313 314 315 316" />
+  <entry name="alaska"      mccs="310 311 312 313 314 315 316" />
+  <entry name="mexico"      mccs="334" />
+  <entry name="china"       mccs="460" />
+  <entry name="macao"       mccs="455" />
+  <entry name="hongkong"    mccs="454" />
+  <entry name="japan"       mccs="440 441" />
+  <entry name="india"       mccs="404 405" />
+  <entry name="korea"       mccs="450" />
+</mdb>
