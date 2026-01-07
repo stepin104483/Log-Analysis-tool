@@ -31,9 +31,8 @@ env/
 *.swp
 *.swo
 
-# Output files (generated, not tracked)
-output/*.txt
-output/*.html
-
 # Keep output directory structure
 !output/.gitkeep
+
+# Note: Sample output files are tracked for reference
+# (prompt.txt, claude_review.txt, band_analysis_report.html, analysis_state.json)

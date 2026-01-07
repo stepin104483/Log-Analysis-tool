@@ -1,0 +1,1267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Band Analysis Report</title>
+    <style>
+        
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f5f5;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
+            color: white;
+            padding: 30px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        header h1 {
+            margin-bottom: 10px;
+        }
+
+        .timestamp {
+            opacity: 0.8;
+            font-size: 0.9em;
+        }
+
+        .section {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .section h2 {
+            color: #1e3c72;
+            border-bottom: 2px solid #1e3c72;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+        }
+
+        .doc-status {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 10px;
+        }
+
+        .doc-item {
+            padding: 10px;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .doc-item.loaded {
+            background-color: #e8f5e9;
+            border-left: 4px solid #4caf50;
+        }
+
+        .doc-item.missing {
+            background-color: #fff3e0;
+            border-left: 4px solid #ff9800;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+        }
+
+        .summary-card {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .summary-card h3 {
+            font-size: 0.9em;
+            opacity: 0.9;
+            margin-bottom: 5px;
+        }
+
+        .summary-card .number {
+            font-size: 2em;
+            font-weight: bold;
+        }
+
+        .summary-card .details {
+            font-size: 0.8em;
+            opacity: 0.8;
+            margin-top: 5px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9em;
+        }
+
+        th, td {
+            padding: 10px;
+            text-align: center;
+            border-bottom: 1px solid #ddd;
+        }
+
+        th {
+            background-color: #1e3c72;
+            color: white;
+            font-weight: 500;
+        }
+
+        tr:hover {
+            background-color: #f5f5f5;
+        }
+
+        .status-pass {
+            color: #4caf50;
+            font-weight: bold;
+        }
+
+        .status-fail {
+            color: #f44336;
+            font-weight: bold;
+        }
+
+        .status-na {
+            color: #9e9e9e;
+        }
+
+        .status-skip {
+            color: #9e9e9e;
+            font-style: italic;
+        }
+
+        .final-enabled {
+            background-color: #e8f5e9;
+            color: #2e7d32;
+            font-weight: bold;
+        }
+
+        .final-filtered {
+            background-color: #fff3e0;
+            color: #ef6c00;
+        }
+
+        .final-anomaly {
+            background-color: #ffebee;
+            color: #c62828;
+            font-weight: bold;
+        }
+
+        .anomaly-list {
+            list-style: none;
+        }
+
+        .anomaly-item {
+            background-color: #ffebee;
+            border-left: 4px solid #f44336;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 0 5px 5px 0;
+        }
+
+        .anomaly-item h4 {
+            color: #c62828;
+            margin-bottom: 5px;
+        }
+
+        .claude-review {
+            background-color: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: 20px;
+            white-space: pre-wrap;
+            font-family: monospace;
+            font-size: 0.9em;
+        }
+
+        footer {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        @media (max-width: 768px) {
+            .summary-grid {
+                grid-template-columns: 1fr;
+            }
+
+            table {
+                font-size: 0.8em;
+            }
+
+            th, td {
+                padding: 5px;
+            }
+        }
+        
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Band Analysis Report</h1>
+            <p class="timestamp">Generated: 2026-01-07 19:31:45</p>
+        </header>
+
+        
+        <div class="section">
+            <h2>Document Status</h2>
+            <div class="doc-status">
+                
+                <div class="doc-item loaded">
+                    <span>&#10004;</span>
+                    <div>
+                        <strong>RFC XML</strong>
+                        <br><small>28 LTE, 23 NR</small>
+                    </div>
+                </div>
+            
+                <div class="doc-item loaded">
+                    <span>&#10004;</span>
+                    <div>
+                        <strong>HW Band Filtering</strong>
+                        <br><small>Loaded</small>
+                    </div>
+                </div>
+            
+                <div class="doc-item loaded">
+                    <span>&#10004;</span>
+                    <div>
+                        <strong>Carrier Policy</strong>
+                        <br><small>Excl: 0 LTE, 0 NR</small>
+                    </div>
+                </div>
+            
+                <div class="doc-item loaded">
+                    <span>&#10004;</span>
+                    <div>
+                        <strong>Generic Restrictions</strong>
+                        <br><small>Excl: 2 LTE, 0 NR</small>
+                    </div>
+                </div>
+            
+                <div class="doc-item loaded">
+                    <span>&#10004;</span>
+                    <div>
+                        <strong>MDB Config (Context)</strong>
+                        <br><small>Context: 18 LTE, 11 NR</small>
+                    </div>
+                </div>
+            
+                <div class="doc-item loaded">
+                    <span>&#10004;</span>
+                    <div>
+                        <strong>QXDM Log</strong>
+                        <br><small>25 LTE, 20 NR SA</small>
+                    </div>
+                </div>
+            
+                <div class="doc-item loaded">
+                    <span>&#10004;</span>
+                    <div>
+                        <strong>UE Capability</strong>
+                        <br><small>22 LTE, 20 NR</small>
+                    </div>
+                </div>
+            
+            </div>
+        </div>
+        
+        
+        <div class="section">
+            <h2>Summary</h2>
+            <div class="summary-grid">
+                <div class="summary-card">
+                    <h3>LTE Bands</h3>
+                    <div class="number">21/31</div>
+                    <div class="details">0 filtered, 8 anomalies</div>
+                </div>
+                <div class="summary-card">
+                    <h3>NR SA Bands</h3>
+                    <div class="number">20/23</div>
+                    <div class="details">3 filtered, 0 anomalies</div>
+                </div>
+                <div class="summary-card">
+                    <h3>NR NSA Bands</h3>
+                    <div class="number">17/23</div>
+                    <div class="details">5 filtered, 1 anomalies</div>
+                </div>
+            </div>
+        </div>
+        
+        
+        <div class="section">
+            <h2>Band Tracing - LTE</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Band</th>
+                        <th>RFC</th>
+                        <th>HW</th>
+                        <th>Carrier</th>
+                        <th>Generic</th>
+                        <th>QXDM</th>
+                        <th>UE Cap</th>
+                        <th>Status</th>
+                        <th>Filtered At</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    
+            <tr>
+                <td><strong>B1</strong></td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="final-enabled">ENABLED</td>
+                <td>-</td>
+            </tr>
+            
+            <tr>
+                <td><strong>B2</strong></td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="final-enabled">ENABLED</td>
+                <td>-</td>
+            </tr>
+            
+            <tr>
+                <td><strong>B3</strong></td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="final-enabled">ENABLED</td>
+                <td>-</td>
+            </tr>
+            
+            <tr>
+                <td><strong>B4</strong></td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="final-enabled">ENABLED</td>
+                <td>-</td>
+            </tr>
+            
+            <tr>
+                <td><strong>B5</strong></td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="final-enabled">ENABLED</td>
+                <td>-</td>
+            </tr>
+            
+            <tr>
+                <td><strong>B6</strong></td>
+                <td class="status-fail">X</td>
+                <td class="status-skip">.</td>
+                <td class="status-skip">.</td>
+                <td class="status-skip">.</td>
+                <td class="status-fail">X</td>
+                <td class="status-fail">X</td>
+                <td class="final-filtered">NOT_SUPPORTED</td>
+                <td>RFC</td>
+            </tr>
+            
+            <tr>
+                <td><strong>B7</strong></td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-fail">X</td>
+                <td class="status-fail">X</td>
+                <td class="final-anomaly">MISSING_IN_PM</td>
+                <td>-</td>
+            </tr>
+            
+            <tr>
+                <td><strong>B8</strong></td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="final-enabled">ENABLED</td>
+                <td>-</td>
+            </tr>
+            
+            <tr>
+                <td><strong>B12</strong></td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="final-enabled">ENABLED</td>
+                <td>-</td>
+            </tr>
+            
+            <tr>
+                <td><strong>B13</strong></td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="final-enabled">ENABLED</td>
+                <td>-</td>
+            </tr>
+            
+            <tr>
+                <td><strong>B14</strong></td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="final-enabled">ENABLED</td>
+                <td>-</td>
+            </tr>
+            
+            <tr>
+                <td><strong>B20</strong></td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="final-enabled">ENABLED</td>
+                <td>-</td>
+            </tr>
+            
+            <tr>
+                <td><strong>B25</strong></td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="final-enabled">ENABLED</td>
+                <td>-</td>
+            </tr>
+            
+            <tr>
+                <td><strong>B26</strong></td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="final-enabled">ENABLED</td>
+                <td>-</td>
+            </tr>
+            
+            <tr>
+                <td><strong>B28</strong></td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="final-enabled">ENABLED</td>
+                <td>-</td>
+            </tr>
+            
+            <tr>
+                <td><strong>B29</strong></td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="final-enabled">ENABLED</td>
+                <td>-</td>
+            </tr>
+            
+            <tr>
+                <td><strong>B30</strong></td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="final-enabled">ENABLED</td>
+                <td>-</td>
+            </tr>
+            
+            <tr>
+                <td><strong>B32</strong></td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-fail">X</td>
+                <td class="final-anomaly">MISSING_IN_UE</td>
+                <td>-</td>
+            </tr>
+            
+            <tr>
+                <td><strong>B37</strong></td>
+                <td class="status-fail">X</td>
+                <td class="status-skip">.</td>
+                <td class="status-skip">.</td>
+                <td class="status-skip">.</td>
+                <td class="status-fail">X</td>
+                <td class="status-fail">X</td>
+                <td class="final-filtered">NOT_SUPPORTED</td>
+                <td>RFC</td>
+            </tr>
+            
+            <tr>
+                <td><strong>B38</strong></td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-fail">X</td>
+                <td class="status-fail">X</td>
+                <td class="final-anomaly">MISSING_IN_PM</td>
+                <td>-</td>
+            </tr>
+            
+            <tr>
+                <td><strong>B39</strong></td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="final-enabled">ENABLED</td>
+                <td>-</td>
+            </tr>
+            
+            <tr>
+                <td><strong>B40</strong></td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="final-enabled">ENABLED</td>
+                <td>-</td>
+            </tr>
+            
+            <tr>
+                <td><strong>B41</strong></td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="final-enabled">ENABLED</td>
+                <td>-</td>
+            </tr>
+            
+            <tr>
+                <td><strong>B42</strong></td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="final-enabled">ENABLED</td>
+                <td>-</td>
+            </tr>
+            
+            <tr>
+                <td><strong>B43</strong></td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="final-enabled">ENABLED</td>
+                <td>-</td>
+            </tr>
+            
+            <tr>
+                <td><strong>B46</strong></td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-fail">X</td>
+                <td class="status-fail">X</td>
+                <td class="final-anomaly">MISSING_IN_PM</td>
+                <td>-</td>
+            </tr>
+            
+            <tr>
+                <td><strong>B48</strong></td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="final-enabled">ENABLED</td>
+                <td>-</td>
+            </tr>
+            
+            <tr>
+                <td><strong>B64</strong></td>
+                <td class="status-fail">X</td>
+                <td class="status-skip">.</td>
+                <td class="status-skip">.</td>
+                <td class="status-skip">.</td>
+                <td class="status-fail">X</td>
+                <td class="status-pass">OK</td>
+                <td class="final-anomaly">ANOMALY</td>
+                <td>RFC</td>
+            </tr>
+            
+            <tr>
+                <td><strong>B66</strong></td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-fail">X</td>
+                <td class="final-anomaly">MISSING_IN_UE</td>
+                <td>-</td>
+            </tr>
+            
+            <tr>
+                <td><strong>B68</strong></td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-fail">X</td>
+                <td class="final-anomaly">MISSING_IN_UE</td>
+                <td>-</td>
+            </tr>
+            
+            <tr>
+                <td><strong>B71</strong></td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-fail">X</td>
+                <td class="final-anomaly">MISSING_IN_UE</td>
+                <td>-</td>
+            </tr>
+            
+                </tbody>
+            </table>
+        </div>
+        
+        
+        <div class="section">
+            <h2>Band Tracing - NR SA</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Band</th>
+                        <th>RFC</th>
+                        <th>HW</th>
+                        <th>Carrier</th>
+                        <th>Generic</th>
+                        <th>QXDM</th>
+                        <th>UE Cap</th>
+                        <th>Status</th>
+                        <th>Filtered At</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    
+            <tr>
+                <td><strong>n1</strong></td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="final-enabled">ENABLED</td>
+                <td>-</td>
+            </tr>
+            
+            <tr>
+                <td><strong>n2</strong></td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="final-enabled">ENABLED</td>
+                <td>-</td>
+            </tr>
+            
+            <tr>
+                <td><strong>n3</strong></td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="final-enabled">ENABLED</td>
+                <td>-</td>
+            </tr>
+            
+            <tr>
+                <td><strong>n5</strong></td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="final-enabled">ENABLED</td>
+                <td>-</td>
+            </tr>
+            
+            <tr>
+                <td><strong>n7</strong></td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="final-enabled">ENABLED</td>
+                <td>-</td>
+            </tr>
+            
+            <tr>
+                <td><strong>n8</strong></td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="final-enabled">ENABLED</td>
+                <td>-</td>
+            </tr>
+            
+            <tr>
+                <td><strong>n12</strong></td>
+                <td class="status-pass">OK</td>
+                <td class="status-fail">X</td>
+                <td class="status-skip">.</td>
+                <td class="status-skip">.</td>
+                <td class="status-fail">X</td>
+                <td class="status-fail">X</td>
+                <td class="final-filtered">FILTERED</td>
+                <td>HW_Filter</td>
+            </tr>
+            
+            <tr>
+                <td><strong>n14</strong></td>
+                <td class="status-pass">OK</td>
+                <td class="status-fail">X</td>
+                <td class="status-skip">.</td>
+                <td class="status-skip">.</td>
+                <td class="status-fail">X</td>
+                <td class="status-fail">X</td>
+                <td class="final-filtered">FILTERED</td>
+                <td>HW_Filter</td>
+            </tr>
+            
+            <tr>
+                <td><strong>n20</strong></td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="final-enabled">ENABLED</td>
+                <td>-</td>
+            </tr>
+            
+            <tr>
+                <td><strong>n25</strong></td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="final-enabled">ENABLED</td>
+                <td>-</td>
+            </tr>
+            
+            <tr>
+                <td><strong>n26</strong></td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="final-enabled">ENABLED</td>
+                <td>-</td>
+            </tr>
+            
+            <tr>
+                <td><strong>n28</strong></td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="final-enabled">ENABLED</td>
+                <td>-</td>
+            </tr>
+            
+            <tr>
+                <td><strong>n30</strong></td>
+                <td class="status-pass">OK</td>
+                <td class="status-fail">X</td>
+                <td class="status-skip">.</td>
+                <td class="status-skip">.</td>
+                <td class="status-fail">X</td>
+                <td class="status-fail">X</td>
+                <td class="final-filtered">FILTERED</td>
+                <td>HW_Filter</td>
+            </tr>
+            
+            <tr>
+                <td><strong>n38</strong></td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="final-enabled">ENABLED</td>
+                <td>-</td>
+            </tr>
+            
+            <tr>
+                <td><strong>n40</strong></td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="final-enabled">ENABLED</td>
+                <td>-</td>
+            </tr>
+            
+            <tr>
+                <td><strong>n41</strong></td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="final-enabled">ENABLED</td>
+                <td>-</td>
+            </tr>
+            
+            <tr>
+                <td><strong>n48</strong></td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="final-enabled">ENABLED</td>
+                <td>-</td>
+            </tr>
+            
+            <tr>
+                <td><strong>n66</strong></td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="final-enabled">ENABLED</td>
+                <td>-</td>
+            </tr>
+            
+            <tr>
+                <td><strong>n70</strong></td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="final-enabled">ENABLED</td>
+                <td>-</td>
+            </tr>
+            
+            <tr>
+                <td><strong>n71</strong></td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="final-enabled">ENABLED</td>
+                <td>-</td>
+            </tr>
+            
+            <tr>
+                <td><strong>n75</strong></td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="final-enabled">ENABLED</td>
+                <td>-</td>
+            </tr>
+            
+            <tr>
+                <td><strong>n77</strong></td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="final-enabled">ENABLED</td>
+                <td>-</td>
+            </tr>
+            
+            <tr>
+                <td><strong>n78</strong></td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="final-enabled">ENABLED</td>
+                <td>-</td>
+            </tr>
+            
+                </tbody>
+            </table>
+        </div>
+        
+        
+        <div class="section">
+            <h2>Anomalies Detected</h2>
+            <div class="anomaly-list">
+                
+            <div class="anomaly-item">
+                <h4>B7 (LTE)</h4>
+                <p>Passed all config stages but missing in QXDM</p>
+            </div>
+            
+            <div class="anomaly-item">
+                <h4>B32 (LTE)</h4>
+                <p>Present in QXDM but missing in UE Capability</p>
+            </div>
+            
+            <div class="anomaly-item">
+                <h4>B38 (LTE)</h4>
+                <p>Passed all config stages but missing in QXDM</p>
+            </div>
+            
+            <div class="anomaly-item">
+                <h4>B46 (LTE)</h4>
+                <p>Passed all config stages but missing in QXDM</p>
+            </div>
+            
+            <div class="anomaly-item">
+                <h4>B64 (LTE)</h4>
+                <p>Present in device logs but NOT in RFC</p>
+            </div>
+            
+            <div class="anomaly-item">
+                <h4>B66 (LTE)</h4>
+                <p>Present in QXDM but missing in UE Capability</p>
+            </div>
+            
+            <div class="anomaly-item">
+                <h4>B68 (LTE)</h4>
+                <p>Present in QXDM but missing in UE Capability</p>
+            </div>
+            
+            <div class="anomaly-item">
+                <h4>B71 (LTE)</h4>
+                <p>Present in QXDM but missing in UE Capability</p>
+            </div>
+            
+            <div class="anomaly-item">
+                <h4>n25 (NR_NSA)</h4>
+                <p>Passed all config stages but missing in QXDM</p>
+            </div>
+            
+            </div>
+        </div>
+        
+        
+        <div class="section">
+            <h2>Claude's Expert Review</h2>
+            <div class="claude-review">
+# Band Analysis Expert Review
+
+## Executive Summary
+
+This configuration shows a generally healthy band setup with several notable anomalies requiring attention. I'll analyze each finding systematically.
+
+---
+
+## 1. Validation of Automated Findings
+
+The automated PASS/FAIL determinations are **largely correct** with the pipeline logic working as expected:
+
+- **RFC → HW → Carrier → Generic → QXDM → UE_Cap** filtering cascade is properly implemented
+- Bands failing at RFC correctly show SKIP for downstream stages
+- HW_Filter exclusions (n12, n14, n30 in NR) propagate correctly
+
+**One concern**: The B64 anomaly detection is correct - this is a genuine configuration inconsistency that needs investigation.
+
+---
+
+## 2. Anomaly Analysis
+
+### Anomaly 1: B7 (LTE) - MISSING_IN_PM
+**Root Cause Assessment:**
+- B7 (2600 MHz FDD) passes all config stages but absent from QXDM logs
+- **Most likely cause**: MDB filtering - B7 is in MDB allowed list, so this is unexpected
+- **Alternative causes**: 
+  - Network not broadcasting B7 during log capture
+  - RF conditions preventing B7 acquisition
+  - PM (Policy Manager) runtime restriction not captured in static config
+
+**Impact**: Medium - B7 is a major capacity band in many regions
+**Action**: Verify QXDM log capture included B7-capable network; check PM NV items
+
+---
+
+### Anomaly 2: B32 (LTE) - MISSING_IN_UE
+**Root Cause Assessment:**
+- B32 (1500 MHz SDL) present in QXDM but missing from UE Capability
+- **Most likely cause**: UE Capability message was captured before B32 was enabled, or intentional exclusion from capability reporting
+- B32 is SDL (Supplementary Downlink) only - some implementations don't advertise SDL bands in standalone UE-Cap
+
+**Impact**: Low - B32 is supplementary; device may still use it via CA
+**Action**: Verify if this is intentional SDL handling; check CA combinations include B32
+
+---
+
+### Anomaly 3: B38 (LTE) - MISSING_IN_PM
+**Root Cause Assessment:**
+- B38 (2600 MHz TDD) passes config but missing from QXDM
+- **Critical observation**: B38 IS in MDB allowed list but not in QXDM
+- **Likely causes**:
+  - No B38 network available during log capture
+  - TDD synchronization requirements not met
+  - Regional TDD configuration mismatch
+
+**Impact**: Medium - B38 is important TDD band for capacity
+**Action**: Confirm B38 network availability; verify TDD config parameters
+
+---
+
+### Anomaly 4: B46 (LTE) - MISSING_IN_PM
+**Root Cause Assessment:**
+- B46 (LAA 5GHz) passes config but missing from QXDM
+- B46 IS in MDB allowed list
+- **Most likely cause**: LAA requires specific conditions:
+  - Listen-Before-Talk (LBT) regulatory compliance
+  - Only operates as SCell in CA configurations
+  - Requires anchor band to be active first
+
+**Impact**: Low - LAA is supplementary capacity only
+**Action**: Verify LAA is tested in CA scenario with appropriate anchor; check 5GHz regulatory settings
+
+---
+
+### Anomaly 5: B64 (LTE) - ANOMALY (Critical)
+**Root Cause Assessment:**
+- **This is the most concerning finding**
+- B64 appears in UE Capability but NOT in RFC
+- B64 (not a standard 3GPP band) appearing in device logs suggests:
+  - Possible proprietary/custom band definition
+  - UE Capability parsing error
+  - Leftover test configuration
+  - Potential security concern if unexpected band support exists
+
+**Impact**: **HIGH** - Configuration integrity issue
+**Action**: 
+1. Immediately verify UE Capability source data
+2. Check if B64 is a custom band alias
+3. Confirm RFC XML is complete and current
+4. This should not ship without resolution
+
+---
+
+### Anomaly 6-8: B66, B68, B71 (LTE) - MISSING_IN_UE
+**Root Cause Assessment:**
+- All three bands: present in QXDM but missing from UE Capability
+- **B66**: Extended AWS band - common in North America
+- **B68**: 700 MHz APT - common in Europe/APAC  
+- **B71**: 600 MHz - US T-Mobile primary band
+
+**Critical observation for B71**: 
+- B71 IS in MDB allowed list (US deployment target)
+- Missing from UE-Cap means network won't schedule device on B71
+- **This is likely a significant issue for US deployment**
+
+**Impact**: **HIGH for B71** (primary coverage band), Medium for B66/B68
+**Action**: 
+- Verify UE Capability encoding includes these bands
+- Check if feature flags for these bands are enabled in NV
+- B71 absence will severely impact US coverage
+
+---
+
+### Anomaly 9: n25 (NR NSA) - MISSING_IN_PM
+**Root Cause Assessment:**
+- n25 (1900 MHz NR) passes config but missing from NSA QXDM logs
+- Interesting: n25 IS in MDB NR allowed list
+- **Note**: n25 NSA requires LTE anchor (typically B2/B25/B66)
+
+**Impact**: Medium - affects NSA NR coverage in PCS band regions
+**Action**: Verify NSA anchor band availability during log capture; check EN-DC combinations
+
+---
+
+## 3. Impact Assessment Matrix
+
+| Anomaly | Severity | Deployment Risk | Priority |
+|---------|----------|-----------------|----------|
+| B64 | Critical | Blocks deployment | P0 |
+| B71 missing UE-Cap | High | Major US coverage gap | P1 |
+| B66 missing UE-Cap | High | AWS coverage impact | P1 |
+| B7 missing PM | Medium | Capacity reduction | P2 |
+| B38 missing PM | Medium | TDD capacity impact | P2 |
+| B68 missing UE-Cap | Medium | EU/APAC impact | P2 |
+| n25 NSA missing | Medium | NR coverage gap | P2 |
+| B32 missing UE-Cap | Low | SDL supplementary | P3 |
+| B46 missing PM | Low | LAA supplementary | P3 |
+
+---
+
+## 4. Recommended Actions
+
+### Immediate (Before Deployment):
+
+1. **Investigate B64 anomaly** - This is a blocking issue. Determine why a band appears in UE-Cap without RFC support.
+
+2. **Fix UE Capability encoding for B66, B68, B71** - These bands passing all config stages but missing from UE-Cap indicates a capability encoding bug. Check:
+   - `ue_cap_rat_container` NV items
+   - Feature enable flags in EFS
+   - UE Capability generator tool version
+
+3. **Verify MDB vs QXDM alignment** - Several MDB-allowed bands (B7, B38, B46) don't appear in QXDM. Determine if this is:
+   - Log capture environment limitation
+   - Actual PM filtering issue
+
+### Secondary:
+
+4. Re-run QXDM capture in environment with all target bands available
+5. Verify NSA EN-DC combination tables include n25 anchors
+6. Document B32/B46 SDL/LAA behavior as expected if confirmed intentional
+
+---
+
+## 5. Overall Verdict
+
+### ❌ NOT SAFE FOR DEPLOYMENT
+
+**Blocking Issues:**
+1. **B64 anomaly** must be explained - potential configuration corruption or unexpected band support
+2. **B71 missing from UE Capability** will cause significant US coverage issues
+3. **B66 missing from UE Capability** will impact AWS band coverage
+
+**Recommendation:** 
+- Hold deployment pending resolution of B64 investigation
+- Fix UE Capability encoding for B66/B68/B71
+- Re-validate with fresh QXDM capture after fixes
+- Target configuration is viable once these issues are resolved
+
+---
+
+## Additional Observations
+
+**Positive findings:**
+- NR SA band configuration looks clean (only expected HW filter exclusions)
+- Core LTE bands (B1-B5, B12, B13, B20, B25, B26, B28, B41, B42, B43) all properly enabled
+- mmWave bands not in this config (expected for this hardware variant)
+
+**HW Filter exclusions (n12, n14, n30):**
+- These are expected for certain hardware SKUs
+- Verify this matches the target hardware variant specifications
+
+            </div>
+        </div>
+        
+
+        <footer>
+            <p>Generated by Band Combos Analyzer Tool</p>
+        </footer>
+    </div>
+</body>
+</html>
