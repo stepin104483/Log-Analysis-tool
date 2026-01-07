@@ -38,7 +38,7 @@ Based on reference design: `requirements/Basic_design_Image.jfif`
 
 ---
 
-## 3. Two-Stage Analysis Architecture
+## 3. Three-Stage Analysis Architecture
 
 ### 3.1 High-Level Flow
 
@@ -47,24 +47,18 @@ Based on reference design: `requirements/Basic_design_Image.jfif`
 |                         BAND ANALYZER TOOL                                  |
 +-----------------------------------------------------------------------------+
 |                                                                             |
-|   STAGE 1: Python Code                    STAGE 2: Claude CLI               |
-|   +---------------------------+           +---------------------------+     |
-|   |                           |           |                           |     |
-|   |  Input Documents          |           |  claude -p \              |     |
-|   |        |                  |           |    --dangerously-skip-    |     |
-|   |        v                  |           |    permissions            |     |
-|   |  Parsers + Band Tracer    |  ------>  |    < prompt.txt           |     |
-|   |        |                  | prompt.txt|                           |     |
-|   |        v                  |           |        |                  |     |
-|   |  Generate prompt.txt      |           |        v                  |     |
-|   |                           |           |  Claude's Expert Review   |     |
-|   +---------------------------+           +---------------------------+     |
-|                                                    |                        |
-|                                                    v                        |
-|                                           +------------------+              |
-|                                           |  FINAL OUTPUT    |              |
-|                                           |  (Console + HTML)|              |
-|                                           +------------------+              |
+|   STAGE 1: Python          STAGE 2: Claude CLI       STAGE 3: Report Gen   |
+|   +------------------+     +------------------+     +--------------------+  |
+|   |                  |     |                  |     |                    |  |
+|   | Input Documents  |     | claude -p \      |     | Merge Stage 1 +    |  |
+|   |       |          |     |   --dangerously- |     | Stage 2 outputs    |  |
+|   |       v          |     |   skip-perms     |     |       |            |  |
+|   | Parsers + Tracer | --> |   < prompt.txt   | --> | Generate final     |  |
+|   |       |          |     |       |          |     | HTML report        |  |
+|   |       v          |     |       v          |     |                    |  |
+|   | prompt.txt       |     | claude_review    |     | report.html        |  |
+|   | (analysis)       |     | .txt             |     | (integrated)       |  |
+|   +------------------+     +------------------+     +--------------------+  |
 |                                                                             |
 +-----------------------------------------------------------------------------+
 ```
@@ -140,14 +134,47 @@ Based on reference design: `requirements/Basic_design_Image.jfif`
 ### 3.3 Execution Flow
 
 ```bash
-# Step 1: Run Python tool to generate prompt
-python band_analyzer.py --rfc rfc.xml --hw hw_filter.xml ... --output prompt.txt
+# Stage 1: Run Python tool to generate prompt and initial analysis
+python -m src.main --rfc rfc.xml --hw-filter hw_filter.xml ...
+# Output: output/prompt.txt
 
-# Step 2: Pipe prompt to Claude CLI for review
-claude -p --dangerously-skip-permissions < prompt.txt > claude_review.txt
+# Stage 2: Pipe prompt to Claude CLI for expert review
+claude -p --dangerously-skip-permissions < output/prompt.txt > output/claude_review.txt
+# Output: output/claude_review.txt
 
-# Step 3: (Optional) Generate final HTML report
-python generate_report.py --stage1 prompt.txt --stage2 claude_review.txt
+# Stage 3: Generate integrated HTML report with Claude's review embedded
+python -m src.merge_report
+# Output: output/band_analysis_report.html (contains both Stage 1 + Stage 2)
+```
+
+### 3.4 Integrated Report Workflow
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                        run_analysis.bat                                  │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                         │
+│  [STAGE 1] Python Analysis                                              │
+│      │                                                                  │
+│      ├──► output/prompt.txt (analysis data for Claude)                  │
+│      │                                                                  │
+│  [STAGE 2] Claude CLI Review                                            │
+│      │                                                                  │
+│      ├──► output/claude_review.txt (expert insights)                    │
+│      │                                                                  │
+│  [STAGE 3] Report Generator                                             │
+│      │                                                                  │
+│      └──► output/band_analysis_report.html                              │
+│           ┌─────────────────────────────────────────┐                   │
+│           │  INTEGRATED HTML REPORT                 │                   │
+│           │  ├── Document Status                    │                   │
+│           │  ├── Summary Statistics                 │                   │
+│           │  ├── Band Tracing Tables                │                   │
+│           │  ├── Anomalies Detected                 │                   │
+│           │  └── Claude's Expert Review  ◄──────────│── Embedded!       │
+│           └─────────────────────────────────────────┘                   │
+│                                                                         │
+└─────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
@@ -162,7 +189,7 @@ python generate_report.py --stage1 prompt.txt --stage2 claude_review.txt
 | 2 | **HW Band Filtering** | XML | Hardware-level band restrictions | HW filter stage skipped |
 | 3 | **Carrier Policy** | XML | Operator-specific band rules | Carrier filter stage skipped |
 | 4 | **Generic Restrictions** | XML | Regulatory restrictions (FCC, etc.) | Regulatory filter stage skipped |
-| 5 | **MDB Config** | XML/MDB | MCC-based band filtering | MDB filter stage skipped |
+| 5 | **MDB Config** | XML/MDB | MCC-based info (**Context for Claude only - NOT used in filtering**) | Claude lacks location context |
 | 6 | **QXDM Log Prints** | TXT/Log | 0x1CCA PM RF Band logs | Cannot verify actual device state |
 | 7 | **UE Capability Info** | TXT/Log | Final bands reported to network | Cannot verify network-reported bands |
 
@@ -186,8 +213,8 @@ python generate_report.py --stage1 prompt.txt --stage2 claude_review.txt
 |                                                                   |
 |  [Generic]  --> If missing: "Generic Restrictions skipped"       |
 |                                                                   |
-|  [MDB]      --> If missing: "MDB skipped - cannot verify         |
-|                 location-based filtering"                         |
+|  [MDB]      --> If missing: "MDB not provided - Claude lacks     |
+|                 location context" (NOT used in filtering)         |
 |                                                                   |
 |  [QXDM]     --> If missing: "QXDM logs not provided - cannot     |
 |                 verify actual device bands"                       |
@@ -244,12 +271,12 @@ The tool can work with **ANY subset** of documents:
 ```
                          BAND FILTERING PIPELINE
 
-    +-------+     +----------+     +---------+     +---------+     +-----+
-    |  RFC  | --> | HW Filter| --> | Carrier | --> | Generic | --> | MDB |
-    +-------+     +----------+     | Policy  |     | Restr.  |     +-----+
-                                   +---------+     +---------+        |
-                                                                      |
-         +------------------------------------------------------------+
+    +-------+     +----------+     +---------+     +---------+
+    |  RFC  | --> | HW Filter| --> | Carrier | --> | Generic |
+    +-------+     +----------+     | Policy  |     | Restr.  |
+                                   +---------+     +---------+
+                                                        |
+         +----------------------------------------------+
          |
          v
     +----------+     +---------+
@@ -257,11 +284,18 @@ The tool can work with **ANY subset** of documents:
     | Prints   |     | Info    |
     +----------+     +---------+
 
-    Stage 1       Stage 2          Stage 3         Stage 4        Stage 5
-    (Source)      (Hardware)       (Operator)      (Regulatory)   (Location)
+    Stage 1       Stage 2          Stage 3         Stage 4
+    (Source)      (Hardware)       (Operator)      (Regulatory)
 
-                  Stage 6          Stage 7
+                  Stage 5          Stage 6
                   (Device Log)     (Final/Network)
+
+
+    +------------------------------------------------------------------+
+    |  NOTE: MDB (mcc2bands) is NOT part of filtering pipeline.        |
+    |  MDB data is passed to Claude as CONTEXT for expert insights.    |
+    |  Claude uses MDB to explain location-based band restrictions.    |
+    +------------------------------------------------------------------+
 ```
 
 ---
@@ -282,10 +316,10 @@ The tool can work with **ANY subset** of documents:
 | **HW Filter Parser** | Parse allowed band ranges (0-indexed) |
 | **Carrier Policy Parser** | Extract excluded bands per carrier |
 | **Generic Restriction Parser** | Parse FCC/regulatory restrictions |
-| **MDB Parser** | Parse mcc2bands, extract bands per MCC |
+| **MDB Parser** | Parse mcc2bands for Claude context (**NOT used in filtering**) |
 | **QXDM Log Parser** | Decode 0x1CCA hex bitmasks to bands |
 | **UE Capability Parser** | Extract bandEUTRA, bandNR values |
-| **Band Tracer Engine** | Compare bands across all stages |
+| **Band Tracer Engine** | Compare bands across filtering stages (RFC→HW→Carrier→Generic→QXDM→UE Cap) |
 
 ### 6.3 Output: Raw Analysis Data
 
@@ -298,7 +332,6 @@ The tool can work with **ANY subset** of documents:
         "HW_Filter": True,
         "Carrier_Policy": True,
         "Generic": True,
-        "MDB": True,
         "QXDM": True,
         "UE_Cap": True
     },
@@ -306,7 +339,172 @@ The tool can work with **ANY subset** of documents:
     "filtered_at": None,
     "anomaly": None
 }
+# Note: MDB is NOT included in stages - it's passed separately as Claude context
 ```
+
+### 6.4 Band Selection Logic (OR Condition)
+
+**Key Design Principle:** Bands shown in the report are the **OR union** of all meaningful sources. This ensures that if a band appears in ANY source, it will be analyzed and shown in the report.
+
+#### 6.4.1 Why OR Condition?
+
+**Problem Scenario:** A band is implemented in carrier_policy.xml (as exclusion) but missed in RFC. If we only trace RFC bands, this mismatch would go undetected.
+
+**Solution:** Include bands from ALL meaningful sources so any configuration mismatch is detected.
+
+#### 6.4.2 Meaningful Sources (Included in OR Union)
+
+| Source | Why Included | What It Indicates |
+|--------|--------------|-------------------|
+| **RFC Bands** | Hardware supported bands | Bands the RF card can physically support |
+| **Carrier Policy Exclusions** | Bands mentioned exist somewhere | If excluded, band must exist in system |
+| **Generic Restriction Exclusions** | Bands mentioned exist somewhere | If restricted, band must exist in system |
+| **QXDM Bands** | Actual device bands | What device is currently broadcasting |
+| **UE Capability Bands** | Network-reported bands | What network sees from device |
+
+#### 6.4.3 Sources Excluded from OR Union
+
+| Source | Why Excluded |
+|--------|--------------|
+| **HW Filter Ranges** | Contains broad whitelist ranges (0-255 for LTE, 0-511 for NR) which would pollute output with hundreds of irrelevant bands |
+| **MDB Bands** | MDB is location-dependent runtime data, not a filtering stage. Passed to Claude as context only. |
+
+#### 6.4.4 Example
+
+**Scenario:**
+- RFC contains: B1, B2, B3, B7, B20
+- Carrier Policy excludes: B4, B12, B13
+- QXDM shows: B1, B2, B3
+
+**Bands Analyzed (OR union):**
+```
+B1, B2, B3, B4, B7, B12, B13, B20
+```
+
+**Result:**
+- B1, B2, B3: ENABLED (in RFC, in QXDM)
+- B4, B12, B13: NOT_SUPPORTED (not in RFC, but detected in carrier exclusions - configuration review needed)
+- B7, B20: MISSING_IN_QXDM (in RFC but not in device logs - investigation needed)
+
+This approach catches:
+1. **Bands in config but not in RFC** - Configuration references unsupported band
+2. **Bands in RFC but not in device** - Expected band not appearing
+3. **Bands in device but not in RFC** - Anomaly detection
+
+### 6.5 MDB as Claude Context (NOT Filtering)
+
+**Key Design Decision:** MDB (mcc2bands) is **NOT** part of the filtering pipeline. It is passed to Claude as **context information** for expert insights.
+
+#### 6.5.1 Why MDB is Excluded from Filtering
+
+| Reason | Explanation |
+|--------|-------------|
+| **Location-dependent** | MDB filtering changes based on where device is located (MCC) |
+| **Runtime behavior** | MDB is applied at runtime, not a static configuration |
+| **QXDM already reflects it** | QXDM logs show actual bands AFTER MDB is applied |
+| **Analysis focus** | We analyze device configuration, not location-specific behavior |
+
+#### 6.5.2 How MDB is Used
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    PROMPT.TXT STRUCTURE                      │
+├─────────────────────────────────────────────────────────────┤
+│  1. Analysis Results (RFC→HW→Carrier→Generic→QXDM→UE Cap)   │
+│  2. Anomalies Detected                                       │
+│  3. MDB Context (if provided)  <── For Claude's reference    │
+│     - MCC being analyzed                                     │
+│     - Allowed LTE bands for this MCC                         │
+│     - Allowed NR SA/NSA bands for this MCC                   │
+│  4. Instructions for Claude                                  │
+└─────────────────────────────────────────────────────────────┘
+```
+
+#### 6.5.3 Claude Uses MDB For
+
+- **Explaining location-based restrictions**: "B7 is not in MDB for US (MCC 310) - expected behavior"
+- **Identifying MDB mismatches**: "Band is in QXDM but not allowed by MDB - possible auto-learning"
+- **Regional insights**: "B38 is TDD band primarily used in China/Europe per MDB"
+- **Debugging location issues**: "Device tested in India where B71 is not allowed by MDB"
+
+### 6.6 QXDM 0x1CCA Parsing Logic
+
+**Note:** This section documents the current parsing approach. Subject to review and refinement based on future findings.
+
+#### 6.6.1 What is 0x1CCA?
+
+**0x1CCA** is a QXDM log packet called **"PM RF Band Info"** (Protocol Manager RF Band Information). It shows the **actual bands currently enabled** on the device modem.
+
+#### 6.6.2 Log Format
+
+```
+[0x1CCA]  PM RF Band Info
+Version = 2
+Sub Id = 2
+Lte Bands
+   Lte Bands 1_64 = 0x000087C0BB08389F
+   Lte Bands 65_128 = 0x000000000000004A
+   Lte Bands 129_192 = 0x0000000000000000
+   Lte Bands 193_256 = 0x0000000000000000
+Nr5g Sa Bands
+   Nr5g Sa Bands 1_64 = 0x000081A00B0800D7
+   Nr5g Sa Bands 65_128 = 0x0000000000003462
+   ...
+Nr5g Nsa Bands
+   Nr5g Nsa Bands 1_64 = 0x000001A00A0800D7
+   ...
+```
+
+#### 6.6.3 Parsing Algorithm
+
+Each hex value is a **64-bit bitmask** where each bit represents a band:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  Lte Bands 1_64 = 0x000087C0BB08389F                            │
+│                   ↓                                              │
+│  Convert to 64-bit binary                                        │
+│                   ↓                                              │
+│  For each bit position (0-63):                                   │
+│    if bit == 1:                                                  │
+│      band_number = start_band + bit_position                     │
+│      (start_band = 1 for "1_64", 65 for "65_128", etc.)         │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+#### 6.6.4 Decoding Example
+
+```
+Hex: 0x9F (last byte of 0x000087C0BB08389F)
+Binary: 1001 1111
+
+Bit 0 = 1 → Band 1  ✓
+Bit 1 = 1 → Band 2  ✓
+Bit 2 = 1 → Band 3  ✓
+Bit 3 = 1 → Band 4  ✓
+Bit 4 = 1 → Band 5  ✓
+Bit 5 = 0 → Band 6  ✗
+Bit 6 = 0 → Band 7  ✗
+Bit 7 = 1 → Band 8  ✓
+```
+
+#### 6.6.5 Band Ranges
+
+| Field Pattern | Band Range | Bits |
+|---------------|------------|------|
+| `Lte Bands 1_64` | B1 - B64 | 64 |
+| `Lte Bands 65_128` | B65 - B128 | 64 |
+| `Lte Bands 129_192` | B129 - B192 | 64 |
+| `Lte Bands 193_256` | B193 - B256 | 64 |
+| `Nr5g Sa Bands 1_64` | n1 - n64 | 64 |
+| `Nr5g Sa Bands 65_128` | n65 - n128 | 64 |
+| ... | ... | ... |
+
+#### 6.6.6 Future Enhancements
+
+- Support for additional log formats (if discovered)
+- QCAT tool integration for automatic log extraction
+- Support for other PM logs (future scope)
 
 ---
 
@@ -352,18 +550,18 @@ SECTION 2: AUTOMATED ANALYSIS RESULTS
 --------------------------------------------------------------------------------
 
 LTE BAND TRACING:
-Band   RFC    HW     Carrier  Generic  MDB    QXDM   UE_Cap   Status
+Band   RFC    HW     Carrier  Generic  QXDM   UE_Cap   Status
 --------------------------------------------------------------------------------
-B1     PASS   PASS   N/A      PASS     PASS   PASS   PASS     ENABLED
-B7     PASS   PASS   N/A      PASS     PASS   FAIL   FAIL     MISSING_IN_QXDM
-B38    PASS   PASS   N/A      PASS     PASS   PASS   PASS     ENABLED
+B1     PASS   PASS   N/A      PASS     PASS   PASS     ENABLED
+B7     PASS   PASS   N/A      PASS     FAIL   FAIL     MISSING_IN_QXDM
+B38    PASS   PASS   N/A      PASS     PASS   PASS     ENABLED
 ...
 
 NR SA BAND TRACING:
-Band   RFC    HW     Carrier  Generic  MDB    QXDM   UE_Cap   Status
+Band   RFC    HW     Carrier  Generic  QXDM   UE_Cap   Status
 --------------------------------------------------------------------------------
-n1     PASS   PASS   N/A      PASS     PASS   PASS   PASS     ENABLED
-n75    FAIL   PASS   N/A      PASS     PASS   PASS   PASS     ANOMALY
+n1     PASS   PASS   N/A      PASS     PASS   PASS     ENABLED
+n75    FAIL   PASS   N/A      PASS     PASS   PASS     ANOMALY
 ...
 
 --------------------------------------------------------------------------------
@@ -473,11 +671,11 @@ Do NOT deploy until n75 anomaly is resolved.
 --------------------------------------------------------------------------------
 BAND TRACING - NR SA
 --------------------------------------------------------------------------------
-Band   RFC    HW     Carrier  Generic  MDB    QXDM   UE_Cap   Status
+Band   RFC    HW     Carrier  Generic  QXDM   UE_Cap   Status
 --------------------------------------------------------------------------------
-n1     PASS   PASS   PASS     PASS     PASS   PASS   PASS     ENABLED
-n38    PASS   PASS   PASS     PASS     PASS   PASS   PASS     ENABLED
-n75    FAIL   PASS   PASS     PASS     PASS   PASS   PASS     ANOMALY!
+n1     PASS   PASS   PASS     PASS     PASS   PASS     ENABLED
+n38    PASS   PASS   PASS     PASS     PASS   PASS     ENABLED
+n75    FAIL   PASS   PASS     PASS     PASS   PASS     ANOMALY!
 --------------------------------------------------------------------------------
 
 [STAGE 2: CLAUDE'S REVIEW]
@@ -519,13 +717,69 @@ Claude's Verdict: 2 anomalies require investigation before deployment.
 ================================================================================
 ```
 
-### 8.2 HTML Output (Downloadable)
+### 8.2 HTML Output (Integrated Report)
 
-HTML report with:
-- Color-coded band status (Green/Yellow/Red)
-- Expandable Claude review sections per band
-- Summary dashboard
-- Downloadable for offline review
+The final HTML report combines **Stage 1 analysis** and **Stage 2 Claude review** into a single document:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│              BAND ANALYSIS REPORT (HTML)                        │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │  HEADER                                                  │   │
+│  │  - Report title                                          │   │
+│  │  - Generation timestamp                                  │   │
+│  └─────────────────────────────────────────────────────────┘   │
+│                                                                 │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │  DOCUMENT STATUS                                         │   │
+│  │  - Which files were loaded                               │   │
+│  │  - Band counts per source                                │   │
+│  └─────────────────────────────────────────────────────────┘   │
+│                                                                 │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │  SUMMARY CARDS                                           │   │
+│  │  - LTE: X enabled / Y total                              │   │
+│  │  - NR SA: X enabled / Y total                            │   │
+│  │  - NR NSA: X enabled / Y total                           │   │
+│  └─────────────────────────────────────────────────────────┘   │
+│                                                                 │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │  BAND TRACING TABLES (Stage 1)                           │   │
+│  │  - LTE bands with PASS/FAIL per stage                    │   │
+│  │  - NR SA bands with PASS/FAIL per stage                  │   │
+│  │  - Color-coded status (green/yellow/red)                 │   │
+│  └─────────────────────────────────────────────────────────┘   │
+│                                                                 │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │  ANOMALIES DETECTED (Stage 1)                            │   │
+│  │  - List of anomalies with descriptions                   │   │
+│  └─────────────────────────────────────────────────────────┘   │
+│                                                                 │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │  CLAUDE'S EXPERT REVIEW (Stage 2)  ◄── INTEGRATED       │   │
+│  │  - Validation of findings                                │   │
+│  │  - Root cause analysis per anomaly                       │   │
+│  │  - Impact assessment matrix                              │   │
+│  │  - Recommended actions                                   │   │
+│  │  - Overall verdict                                       │   │
+│  └─────────────────────────────────────────────────────────┘   │
+│                                                                 │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │  FOOTER                                                  │   │
+│  │  - Generated by Band Combos Analyzer Tool                │   │
+│  └─────────────────────────────────────────────────────────┘   │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**Key Features:**
+- Single self-contained HTML file
+- Color-coded band status (Green=ENABLED, Yellow=FILTERED, Red=ANOMALY)
+- Claude's expert review embedded directly in report
+- Downloadable for offline review and sharing
+- No external dependencies (all CSS inline)
 
 ---
 
@@ -546,9 +800,11 @@ Stage 1 - RFC (RF Card):        FAIL  <-- Not in RFC!
 Stage 2 - HW Band Filtering:    PASS  (Bit 74 allowed)
 Stage 3 - Carrier Policy:       PASS  (Not excluded)
 Stage 4 - Generic Restriction:  PASS  (No restriction)
-Stage 5 - MDB (mcc2bands):      PASS  (Allowed for MCC 310)
-Stage 6 - QXDM Log (0x1CCA):    PASS  <-- Present in log!
-Stage 7 - UE Capability:        PASS  <-- Reported to network!
+Stage 5 - QXDM Log (0x1CCA):    PASS  <-- Present in log!
+Stage 6 - UE Capability:        PASS  <-- Reported to network!
+
+[MDB CONTEXT - For Claude's reference]
+MDB (mcc2bands) for MCC 310: n75 is ALLOWED
 
 Automated Result: ANOMALY - Present in logs but not in RFC
 
@@ -611,10 +867,10 @@ Band_Combos_Analyzer/
 |   +-- output/
 |   |   +-- __init__.py
 |   |   +-- console_report.py         # Console output generator
-|   |   +-- html_report.py            # HTML report generator (combines Stage 1 + 2)
+|   |   +-- html_report.py            # HTML report generator
 |   |
 |   +-- main.py                       # Main entry point (Stage 1)
-|   +-- generate_report.py            # Combine Stage 1 + Stage 2 into HTML
+|   +-- merge_report.py               # Stage 3: Merge Claude review into HTML report
 |
 +-- templates/
 |   +-- report_template.html          # HTML report template
@@ -629,37 +885,100 @@ Band_Combos_Analyzer/
 
 ### 10.1 Execution Scripts
 
-**run_analysis.sh** (Linux/Mac) or **run_analysis.bat** (Windows):
+**run_analysis.bat** (Windows):
+
+```batch
+@echo off
+REM Full Band Analysis Pipeline - 3 Stages
+
+cd /d "%~dp0"
+
+echo ============================================================
+echo           BAND COMBOS ANALYZER TOOL
+echo ============================================================
+
+REM Configuration - Edit file paths as needed
+set RFC_FILE=Input\rfc.xml
+set HW_FILTER_FILE=Input\hardware_band_filtering.xml
+set CARRIER_FILE=Input\carrier_policy.xml
+set GENERIC_FILE=Input\generic_band_restrictions.xml
+set MDB_FILE=Input\MDB\mcc2bands\mcc2bands.xml
+set QXDM_FILE=Input\qxdm_log.txt
+set UE_CAP_FILE=Input\ue_capability.txt
+set TARGET_MCC=310
+
+echo.
+echo [STAGE 1] Running Python Analysis...
+python -m src.main ^
+    --rfc "%RFC_FILE%" ^
+    --hw-filter "%HW_FILTER_FILE%" ^
+    --carrier "%CARRIER_FILE%" ^
+    --generic "%GENERIC_FILE%" ^
+    --mdb "%MDB_FILE%" --mcc %TARGET_MCC% ^
+    --qxdm "%QXDM_FILE%" ^
+    --ue-cap "%UE_CAP_FILE%"
+
+echo.
+echo [STAGE 2] Running Claude CLI Review...
+claude -p --dangerously-skip-permissions < output\prompt.txt > output\claude_review.txt
+
+echo.
+echo [STAGE 3] Generating Integrated HTML Report...
+python -m src.merge_report
+
+echo.
+echo ============================================================
+echo                     ANALYSIS COMPLETE
+echo ============================================================
+echo.
+echo Output files:
+echo   - output\prompt.txt              : Stage 1 analysis
+echo   - output\claude_review.txt       : Stage 2 Claude review
+echo   - output\band_analysis_report.html : INTEGRATED REPORT (Stage 1 + 2)
+echo.
+pause
+```
+
+**run_analysis.sh** (Linux/Mac):
 
 ```bash
 #!/bin/bash
-# Full Band Analysis Pipeline
+# Full Band Analysis Pipeline - 3 Stages
 
-echo "=== STAGE 1: Running Python Analysis ==="
-python src/main.py \
-    --rfc input/rfc.xml \
-    --hw-filter input/hw_band_filtering.xml \
-    --carrier input/carrier_policy.xml \
-    --generic input/generic_restrictions.xml \
-    --mdb input/mcc2bands.xml \
-    --qxdm input/qxdm_log.txt \
-    --ue-cap input/ue_capability.txt \
-    --output output/prompt.txt
+cd "$(dirname "$0")"
+
+echo "============================================================"
+echo "           BAND COMBOS ANALYZER TOOL"
+echo "============================================================"
 
 echo ""
-echo "=== STAGE 2: Claude CLI Review ==="
+echo "[STAGE 1] Running Python Analysis..."
+python -m src.main \
+    --rfc "Input/rfc.xml" \
+    --hw-filter "Input/hardware_band_filtering.xml" \
+    --carrier "Input/carrier_policy.xml" \
+    --generic "Input/generic_band_restrictions.xml" \
+    --mdb "Input/MDB/mcc2bands/mcc2bands.xml" --mcc 310 \
+    --qxdm "Input/qxdm_log.txt" \
+    --ue-cap "Input/ue_capability.txt"
+
+echo ""
+echo "[STAGE 2] Running Claude CLI Review..."
 claude -p --dangerously-skip-permissions < output/prompt.txt > output/claude_review.txt
 
 echo ""
-echo "=== STAGE 3: Generating HTML Report ==="
-python src/generate_report.py \
-    --stage1 output/prompt.txt \
-    --stage2 output/claude_review.txt \
-    --output output/band_analysis_report.html
+echo "[STAGE 3] Generating Integrated HTML Report..."
+python -m src.merge_report
 
 echo ""
-echo "=== COMPLETE ==="
-echo "Report: output/band_analysis_report.html"
+echo "============================================================"
+echo "                     ANALYSIS COMPLETE"
+echo "============================================================"
+echo ""
+echo "Output files:"
+echo "  - output/prompt.txt              : Stage 1 analysis"
+echo "  - output/claude_review.txt       : Stage 2 Claude review"
+echo "  - output/band_analysis_report.html : INTEGRATED REPORT (Stage 1 + 2)"
 ```
 
 ---
@@ -1030,6 +1349,6 @@ Band_Combos_Analyzer/
 
 ---
 
-*Document Version: 2.3*
-*Last Updated: Added Knowledge Base section for domain knowledge management*
-*Status: PENDING FINAL REVIEW*
+*Document Version: 2.6*
+*Last Updated: Added 3-stage architecture with integrated HTML report (Sections 3.1, 3.4, 8.2, 10.1)*
+*Status: IMPLEMENTATION IN PROGRESS*

@@ -106,13 +106,13 @@ class ConsoleReport:
 
         lines = [
             f"\nBAND TRACING - {title}",
-            "-" * 95
+            "-" * 90
         ]
 
-        # Header
-        header = f"{'Band':<6} {'RFC':<5} {'HW':<5} {'Carrier':<8} {'Generic':<8} {'MDB':<5} {'QXDM':<5} {'UECap':<6} {'Status':<15} {'Filtered At'}"
+        # Header (6 stages: RFC → HW → Carrier → Generic → QXDM → UE Cap)
+        header = f"{'Band':<6} {'RFC':<5} {'HW':<5} {'Carrier':<8} {'Generic':<8} {'QXDM':<5} {'UECap':<6} {'Status':<15} {'Filtered At'}"
         lines.append(header)
-        lines.append("-" * 95)
+        lines.append("-" * 90)
 
         for r in results:
             band_name = f"{prefix}{r.band_num}"
@@ -137,7 +137,6 @@ class ConsoleReport:
                 f"{sym(r.stages.get('HW_Filter', BandStatus.NA)):<5} "
                 f"{sym(r.stages.get('Carrier', BandStatus.NA)):<8} "
                 f"{sym(r.stages.get('Generic', BandStatus.NA)):<8} "
-                f"{sym(r.stages.get('MDB', BandStatus.NA)):<5} "
                 f"{sym(r.stages.get('QXDM', BandStatus.NA)):<5} "
                 f"{sym(r.stages.get('UE_Cap', BandStatus.NA)):<6} "
                 f"{status_str:<15} "
@@ -145,7 +144,7 @@ class ConsoleReport:
             )
             lines.append(row)
 
-        lines.append("-" * 95)
+        lines.append("-" * 90)
         return '\n'.join(lines)
 
     def _anomalies_section(self) -> str:

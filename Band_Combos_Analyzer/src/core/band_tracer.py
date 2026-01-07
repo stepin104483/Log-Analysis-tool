@@ -50,17 +50,18 @@ class BandTracer:
     """
     Traces bands through filtering pipeline.
 
-    Stages:
+    Filtering Stages:
     1. RFC - RF Card supported bands
     2. HW Filter - Hardware band filtering
     3. Carrier - Carrier policy exclusions
     4. Generic - FCC/regulatory restrictions
-    5. MDB - MCC-based filtering
-    6. QXDM - Actual device bands (0x1CCA)
-    7. UE Cap - Network-reported bands
+    5. QXDM - Actual device bands (0x1CCA)
+    6. UE Cap - Network-reported bands
+
+    Note: MDB is NOT a filtering stage. MDB data is stored for Claude context only.
     """
 
-    STAGES = ['RFC', 'HW_Filter', 'Carrier', 'Generic', 'MDB', 'QXDM', 'UE_Cap']
+    STAGES = ['RFC', 'HW_Filter', 'Carrier', 'Generic', 'QXDM', 'UE_Cap']
 
     def __init__(self):
         # Bands from each source
@@ -98,7 +99,7 @@ class BandTracer:
             'HW_Filter': DocumentStatus('HW Band Filtering', False),
             'Carrier': DocumentStatus('Carrier Policy', False),
             'Generic': DocumentStatus('Generic Restrictions', False),
-            'MDB': DocumentStatus('MDB Config', False),
+            'MDB': DocumentStatus('MDB Config (Context)', False),  # Context only, not filtering
             'QXDM': DocumentStatus('QXDM Log', False),
             'UE_Cap': DocumentStatus('UE Capability', False),
         }
@@ -136,7 +137,7 @@ class BandTracer:
 
     def set_mdb_bands(self, lte: Set[int], nr_sa: Set[int], nr_nsa: Set[int],
                       lte_all: bool = False, nr_sa_all: bool = False, nr_nsa_all: bool = False):
-        """Set MDB allowed bands"""
+        """Set MDB allowed bands (for Claude context only, NOT used in filtering)"""
         self.mdb_lte = lte
         self.mdb_nr_sa = nr_sa
         self.mdb_nr_nsa = nr_nsa
@@ -144,7 +145,7 @@ class BandTracer:
         self.mdb_nr_sa_all = nr_sa_all
         self.mdb_nr_nsa_all = nr_nsa_all
         self.doc_status['MDB'].loaded = True
-        self.doc_status['MDB'].details = "Loaded"
+        self.doc_status['MDB'].details = f"Context: {len(lte)} LTE, {len(nr_sa)} NR"
 
     def set_qxdm_bands(self, lte: Set[int], nr_sa: Set[int], nr_nsa: Set[int]):
         """Set QXDM 0x1CCA bands"""
@@ -218,20 +219,9 @@ class BandTracer:
             else:
                 result.stages['Generic'] = BandStatus.PASS
 
-        # Stage 5: MDB
-        if filtered:
-            result.stages['MDB'] = BandStatus.SKIPPED
-        elif not self.doc_status['MDB'].loaded:
-            result.stages['MDB'] = BandStatus.NA
-        else:
-            if self.mdb_lte_all or band in self.mdb_lte:
-                result.stages['MDB'] = BandStatus.PASS
-            else:
-                result.stages['MDB'] = BandStatus.FAIL
-                filtered = True
-                result.filtered_at = 'MDB'
+        # Note: MDB is NOT a filtering stage - data stored for Claude context only
 
-        # Stage 6: QXDM
+        # Stage 5: QXDM
         if not self.doc_status['QXDM'].loaded:
             result.stages['QXDM'] = BandStatus.NA
         else:
@@ -240,7 +230,7 @@ class BandTracer:
             else:
                 result.stages['QXDM'] = BandStatus.FAIL
 
-        # Stage 7: UE Capability
+        # Stage 6: UE Capability
         if not self.doc_status['UE_Cap'].loaded:
             result.stages['UE_Cap'] = BandStatus.NA
         else:
@@ -262,8 +252,6 @@ class BandTracer:
         # Select appropriate band sets based on mode
         hw_bands = self.hw_nr_sa if mode == 'SA' else self.hw_nr_nsa
         carrier_excluded = self.carrier_nr_sa_excluded if mode == 'SA' else self.carrier_nr_nsa_excluded
-        mdb_bands = self.mdb_nr_sa if mode == 'SA' else self.mdb_nr_nsa
-        mdb_all = self.mdb_nr_sa_all if mode == 'SA' else self.mdb_nr_nsa_all
         qxdm_bands = self.qxdm_nr_sa if mode == 'SA' else self.qxdm_nr_nsa
 
         # Stage 1: RFC
@@ -316,20 +304,9 @@ class BandTracer:
             else:
                 result.stages['Generic'] = BandStatus.PASS
 
-        # Stage 5: MDB
-        if filtered:
-            result.stages['MDB'] = BandStatus.SKIPPED
-        elif not self.doc_status['MDB'].loaded:
-            result.stages['MDB'] = BandStatus.NA
-        else:
-            if mdb_all or band in mdb_bands:
-                result.stages['MDB'] = BandStatus.PASS
-            else:
-                result.stages['MDB'] = BandStatus.FAIL
-                filtered = True
-                result.filtered_at = 'MDB'
+        # Note: MDB is NOT a filtering stage - data stored for Claude context only
 
-        # Stage 6: QXDM
+        # Stage 5: QXDM
         if not self.doc_status['QXDM'].loaded:
             result.stages['QXDM'] = BandStatus.NA
         else:
@@ -338,7 +315,7 @@ class BandTracer:
             else:
                 result.stages['QXDM'] = BandStatus.FAIL
 
-        # Stage 7: UE Capability
+        # Stage 6: UE Capability
         if not self.doc_status['UE_Cap'].loaded:
             result.stages['UE_Cap'] = BandStatus.NA
         else:
@@ -388,12 +365,25 @@ class BandTracer:
         return FinalStatus.ENABLED
 
     def get_all_bands(self) -> Set[int]:
-        """Get union of all bands from all sources for comprehensive analysis"""
+        """
+        Get union of all bands from meaningful sources for analysis.
+
+        Includes:
+        - RFC bands (hardware supported)
+        - Carrier Policy excluded bands (indicates bands that exist)
+        - Generic Restriction excluded bands (indicates bands that exist)
+        - QXDM bands (actual device bands)
+        - UE Capability bands (network-reported)
+
+        Excludes:
+        - HW filter ranges (broad whitelist ranges 0-255/0-511)
+        - MDB bands (location-dependent, passed to Claude as context only)
+        """
         all_lte = (self.rfc_lte | self.qxdm_lte | self.ue_cap_lte |
-                   self.hw_lte | self.mdb_lte)
+                   self.carrier_lte_excluded | self.generic_lte_excluded)
         all_nr = (self.rfc_nr | self.qxdm_nr_sa | self.qxdm_nr_nsa |
-                  self.ue_cap_nr | self.hw_nr_sa | self.hw_nr_nsa |
-                  self.mdb_nr_sa | self.mdb_nr_nsa)
+                  self.ue_cap_nr | self.carrier_nr_sa_excluded |
+                  self.carrier_nr_nsa_excluded | self.generic_nr_excluded)
         return all_lte, all_nr
 
     def trace_all_bands(self) -> Dict[str, List[BandTraceResult]]:

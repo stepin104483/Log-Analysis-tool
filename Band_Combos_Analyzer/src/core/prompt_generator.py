@@ -57,12 +57,15 @@ class PromptGenerator:
         # Section 4: Summary Statistics
         sections.append(self._generate_summary())
 
-        # Section 5: Knowledge Base Context (if provided)
+        # Section 5: MDB Context (for Claude's reference, NOT filtering)
+        sections.append(self._generate_mdb_context())
+
+        # Section 6: Knowledge Base Context (if provided)
         if knowledge_base_content:
             sections.append(self._generate_kb_section(knowledge_base_content))
 
-        # Section 6: Review Instructions
-        sections.append(self._generate_review_instructions())
+        # Section 6/7: Review Instructions
+        sections.append(self._generate_review_instructions(has_kb_content=bool(knowledge_base_content)))
 
         prompt = '\n'.join(sections)
 
@@ -117,7 +120,7 @@ Review the following automated band analysis and provide your expert insights.
                 'HW_Filter': "Hardware filter stage skipped - cannot verify HW restrictions",
                 'Carrier': "Carrier policy stage skipped - cannot verify operator exclusions",
                 'Generic': "Generic restrictions skipped - cannot verify FCC/regulatory blocks",
-                'MDB': "MDB stage skipped - cannot verify MCC-based filtering",
+                'MDB': "MDB context not available - location-based band info unavailable for review",
                 'QXDM': "Cannot verify actual device bands from QXDM 0x1CCA log",
                 'UE_Cap': "Cannot verify network-reported bands"
             }
@@ -161,8 +164,8 @@ Review the following automated band analysis and provide your expert insights.
         if not results:
             return "  No bands to trace\n"
 
-        # Header
-        header = f"{'Band':<6} {'RFC':<6} {'HW':<6} {'Carrier':<8} {'Generic':<8} {'MDB':<6} {'QXDM':<6} {'UE_Cap':<7} {'Status':<15} {'Filtered At'}"
+        # Header (6 filtering stages: RFC → HW → Carrier → Generic → QXDM → UE Cap)
+        header = f"{'Band':<6} {'RFC':<6} {'HW':<6} {'Carrier':<8} {'Generic':<8} {'QXDM':<6} {'UE_Cap':<7} {'Status':<15} {'Filtered At'}"
         separator = "-" * len(header)
 
         lines = [separator, header, separator]
@@ -186,7 +189,6 @@ Review the following automated band analysis and provide your expert insights.
                 f"{status_symbol(r.stages.get('HW_Filter', BandStatus.NA)):<6} "
                 f"{status_symbol(r.stages.get('Carrier', BandStatus.NA)):<8} "
                 f"{status_symbol(r.stages.get('Generic', BandStatus.NA)):<8} "
-                f"{status_symbol(r.stages.get('MDB', BandStatus.NA)):<6} "
                 f"{status_symbol(r.stages.get('QXDM', BandStatus.NA)):<6} "
                 f"{status_symbol(r.stages.get('UE_Cap', BandStatus.NA)):<7} "
                 f"{r.final_status.value:<15} "
@@ -244,11 +246,46 @@ Review the following automated band analysis and provide your expert insights.
         ]
         return '\n'.join(lines)
 
+    def _generate_mdb_context(self) -> str:
+        """Generate MDB context section for Claude (NOT filtering - context only)"""
+        lines = [
+            "--------------------------------------------------------------------------------",
+            "SECTION 5: MDB CONTEXT (Location-Based Band Information)",
+            "--------------------------------------------------------------------------------",
+            "",
+            "NOTE: MDB (mcc2bands) is NOT part of the filtering pipeline. This information is",
+            "provided as context for your expert review. MDB shows bands allowed for a specific",
+            "location (MCC) at runtime - QXDM logs already reflect MDB filtering applied.",
+            ""
+        ]
+
+        mdb_loaded = self.tracer.doc_status.get('MDB')
+        if mdb_loaded and mdb_loaded.loaded:
+            # Get MDB bands from tracer
+            mdb_lte = sorted(self.tracer.mdb_lte) if self.tracer.mdb_lte else []
+            mdb_nr_sa = sorted(self.tracer.mdb_nr_sa) if self.tracer.mdb_nr_sa else []
+            mdb_nr_nsa = sorted(self.tracer.mdb_nr_nsa) if self.tracer.mdb_nr_nsa else []
+            # Combine SA and NSA for display (often the same)
+            mdb_nr_combined = sorted(set(mdb_nr_sa) | set(mdb_nr_nsa))
+
+            lines.append(f"Target MCC: {mdb_loaded.details}")
+            lines.append("")
+            lines.append(f"MDB Allowed LTE Bands ({len(mdb_lte)}): {', '.join(f'B{b}' for b in mdb_lte) if mdb_lte else 'None'}")
+            lines.append(f"MDB Allowed NR Bands ({len(mdb_nr_combined)}): {', '.join(f'n{b}' for b in mdb_nr_combined) if mdb_nr_combined else 'None'}")
+            lines.append("")
+            lines.append("Consider: If a band passes all config stages but is missing from QXDM,")
+            lines.append("check if it's excluded by MDB for this location.")
+        else:
+            lines.append("MDB data not provided - location-based context unavailable.")
+
+        lines.append("")
+        return '\n'.join(lines)
+
     def _generate_kb_section(self, kb_content: str) -> str:
         """Generate knowledge base context section"""
         lines = [
             "--------------------------------------------------------------------------------",
-            "SECTION 5: RELEVANT KNOWLEDGE BASE CONTEXT",
+            "SECTION 6: RELEVANT KNOWLEDGE BASE CONTEXT",
             "--------------------------------------------------------------------------------",
             "",
             kb_content,
@@ -256,9 +293,10 @@ Review the following automated band analysis and provide your expert insights.
         ]
         return '\n'.join(lines)
 
-    def _generate_review_instructions(self) -> str:
+    def _generate_review_instructions(self, has_kb_content: bool = False) -> str:
         """Generate review instructions for Claude"""
-        section_num = "6" if self.anomalies else "5"
+        # Sections: 1-Doc, 2-Analysis, 3-Anomalies, 4-Summary, 5-MDB, (6-KB optional), 6/7-Review
+        section_num = "7" if has_kb_content else "6"
 
         lines = [
             "--------------------------------------------------------------------------------",

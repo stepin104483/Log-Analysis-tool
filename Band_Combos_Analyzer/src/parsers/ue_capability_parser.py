@@ -202,9 +202,11 @@ def parse_ue_capability(file_path: str) -> Optional[UECapabilityBands]:
                 nr_nsa_bands.update(parse_band_list_text(match))
 
         # Also look for individual band entries (common in ASN.1 decoded logs)
-        # Example: "bandEUTRA: 1" or "bandNR: 77"
-        individual_lte = re.findall(r'bandEUTRA\s*:\s*(\d+)', content)
-        individual_nr = re.findall(r'bandNR\s*:\s*(\d+)', content)
+        # Formats:
+        #   "bandEUTRA: 1" or "bandEUTRA 1," or "bandEUTRA 1"
+        #   "bandNR: 77" or "bandNR 77," or "bandNR 77"
+        individual_lte = re.findall(r'bandEUTRA\s*[:=]?\s*(\d+)', content)
+        individual_nr = re.findall(r'bandNR\s*[:=]?\s*(\d+)', content)
 
         for band in individual_lte:
             try:

@@ -16,6 +16,7 @@ For Stage 2 (Claude review):
 
 import argparse
 import sys
+import json
 from pathlib import Path
 from datetime import datetime
 
@@ -26,6 +27,66 @@ from src.core.analyzer import BandAnalyzer, AnalysisInput
 from src.core.prompt_generator import generate_prompt
 from src.output.console_report import print_console_report, get_console_report
 from src.output.html_report import generate_html_report
+
+
+def save_analysis_state(result, output_path: str):
+    """
+    Save analysis state to JSON for Stage 3 report generation.
+    This allows merge_report.py to reconstruct the analysis without re-parsing.
+    """
+    state = {
+        'timestamp': datetime.now().isoformat(),
+        'doc_status': {},
+        'trace_results': {},
+        'summary': {},
+        'anomalies': result.anomalies,
+        'errors': result.errors,
+        'mdb_lte': list(result.tracer.mdb_lte),
+        'mdb_nr_sa': list(result.tracer.mdb_nr_sa),
+        'mdb_nr_nsa': list(result.tracer.mdb_nr_nsa)
+    }
+
+    # Save document status
+    for stage, status in result.tracer.doc_status.items():
+        state['doc_status'][stage] = {
+            'name': status.name,
+            'loaded': status.loaded,
+            'details': status.details
+        }
+
+    # Save trace results
+    for band_type, results in result.trace_results.items():
+        state['trace_results'][band_type] = []
+        for r in results:
+            state['trace_results'][band_type].append({
+                'band_num': r.band_num,
+                'band_type': r.band_type,
+                'stages': {k: v.name for k, v in r.stages.items()},
+                'final_status': r.final_status.name,
+                'filtered_at': r.filtered_at
+            })
+
+    # Save summary
+    s = result.summary
+    state['summary'] = {
+        'lte_total': s.lte_total,
+        'lte_enabled': s.lte_enabled,
+        'lte_filtered': s.lte_filtered,
+        'lte_anomalies': s.lte_anomalies,
+        'nr_sa_total': s.nr_sa_total,
+        'nr_sa_enabled': s.nr_sa_enabled,
+        'nr_sa_filtered': s.nr_sa_filtered,
+        'nr_sa_anomalies': s.nr_sa_anomalies,
+        'nr_nsa_total': s.nr_nsa_total,
+        'nr_nsa_enabled': s.nr_nsa_enabled,
+        'nr_nsa_filtered': s.nr_nsa_filtered,
+        'nr_nsa_anomalies': s.nr_nsa_anomalies
+    }
+
+    with open(output_path, 'w', encoding='utf-8') as f:
+        json.dump(state, f, indent=2)
+
+    return output_path
 
 
 def parse_args():
@@ -135,6 +196,11 @@ def main():
     prompt_path = output_dir / args.prompt_file
     print(f"\n[*] Generating prompt for Claude: {prompt_path}")
     generate_prompt(result, str(prompt_path))
+
+    # Save analysis state for Stage 3
+    state_path = output_dir / "analysis_state.json"
+    print(f"[*] Saving analysis state: {state_path}")
+    save_analysis_state(result, str(state_path))
 
     # Generate HTML report if requested
     if args.html:

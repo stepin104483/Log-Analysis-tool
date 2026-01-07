@@ -368,7 +368,6 @@ class HTMLReport:
                 {cell(r.stages.get('HW_Filter', BandStatus.NA))}
                 {cell(r.stages.get('Carrier', BandStatus.NA))}
                 {cell(r.stages.get('Generic', BandStatus.NA))}
-                {cell(r.stages.get('MDB', BandStatus.NA))}
                 {cell(r.stages.get('QXDM', BandStatus.NA))}
                 {cell(r.stages.get('UE_Cap', BandStatus.NA))}
                 <td class="{final_class}">{r.final_status.value}</td>
@@ -388,7 +387,6 @@ class HTMLReport:
                         <th>HW</th>
                         <th>Carrier</th>
                         <th>Generic</th>
-                        <th>MDB</th>
                         <th>QXDM</th>
                         <th>UE Cap</th>
                         <th>Status</th>
