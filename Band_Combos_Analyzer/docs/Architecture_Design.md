@@ -189,9 +189,10 @@ python -m src.merge_report
 | 2 | **HW Band Filtering** | XML | Hardware-level band restrictions | HW filter stage skipped |
 | 3 | **Carrier Policy** | XML | Operator-specific band rules | Carrier filter stage skipped |
 | 4 | **Generic Restrictions** | XML | Regulatory restrictions (FCC, etc.) | Regulatory filter stage skipped |
-| 5 | **MDB Config** | XML/MDB | MCC-based info (**Context for Claude only - NOT used in filtering**) | Claude lacks location context |
-| 6 | **QXDM Log Prints** | TXT/Log | 0x1CCA PM RF Band logs | Cannot verify actual device state |
-| 7 | **UE Capability Info** | TXT/Log | Final bands reported to network | Cannot verify network-reported bands |
+| 5 | **MCFG NV Config** | XML | NV band preference bitmasks (SW filtering) | NV band pref stage skipped |
+| 6 | **MDB Config** | XML/MDB | MCC-based info (**Context for Claude only - NOT used in filtering**) | Claude lacks location context |
+| 7 | **QXDM Log Prints** | TXT/Log | 0x1CCA PM RF Band logs | Cannot verify actual device state |
+| 8 | **UE Capability Info** | TXT/Log | Final bands reported to network | Cannot verify network-reported bands |
 
 ### 4.1 Independent Layer Design
 
@@ -212,6 +213,9 @@ python -m src.merge_report
 |                 verify operator restrictions"                     |
 |                                                                   |
 |  [Generic]  --> If missing: "Generic Restrictions skipped"       |
+|                                                                   |
+|  [MCFG NV]  --> If missing: "NV Band Pref skipped - cannot       |
+|                 verify SW band preferences"                       |
 |                                                                   |
 |  [MDB]      --> If missing: "MDB not provided - Claude lacks     |
 |                 location context" (NOT used in filtering)         |
@@ -271,12 +275,12 @@ The tool can work with **ANY subset** of documents:
 ```
                          BAND FILTERING PIPELINE
 
-    +-------+     +----------+     +---------+     +---------+
-    |  RFC  | --> | HW Filter| --> | Carrier | --> | Generic |
-    +-------+     +----------+     | Policy  |     | Restr.  |
-                                   +---------+     +---------+
-                                                        |
-         +----------------------------------------------+
+    +-------+     +----------+     +---------+     +---------+     +---------+
+    |  RFC  | --> | HW Filter| --> | Carrier | --> | Generic | --> | NV Band |
+    +-------+     +----------+     | Policy  |     | Restr.  |     | Pref    |
+                                   +---------+     +---------+     +---------+
+                                                                        |
+         +--------------------------------------------------------------+
          |
          v
     +----------+     +---------+
@@ -284,10 +288,10 @@ The tool can work with **ANY subset** of documents:
     | Prints   |     | Info    |
     +----------+     +---------+
 
-    Stage 1       Stage 2          Stage 3         Stage 4
-    (Source)      (Hardware)       (Operator)      (Regulatory)
+    Stage 1       Stage 2          Stage 3         Stage 4         Stage 5
+    (Source)      (Hardware)       (Operator)      (Regulatory)    (SW/NV)
 
-                  Stage 5          Stage 6
+                  Stage 6          Stage 7
                   (Device Log)     (Final/Network)
 
 
@@ -316,10 +320,11 @@ The tool can work with **ANY subset** of documents:
 | **HW Filter Parser** | Parse allowed band ranges (0-indexed) |
 | **Carrier Policy Parser** | Extract excluded bands per carrier |
 | **Generic Restriction Parser** | Parse FCC/regulatory restrictions |
+| **MCFG NV Parser** | Parse NV band preference bitmasks from MCFG XML |
 | **MDB Parser** | Parse mcc2bands for Claude context (**NOT used in filtering**) |
 | **QXDM Log Parser** | Decode 0x1CCA hex bitmasks to bands |
 | **UE Capability Parser** | Extract bandEUTRA, bandNR values |
-| **Band Tracer Engine** | Compare bands across filtering stages (RFC→HW→Carrier→Generic→QXDM→UE Cap) |
+| **Band Tracer Engine** | Compare bands across filtering stages (RFC→HW→Carrier→Generic→NV→QXDM→UE Cap) |
 
 ### 6.3 Output: Raw Analysis Data
 
@@ -332,6 +337,7 @@ The tool can work with **ANY subset** of documents:
         "HW_Filter": True,
         "Carrier_Policy": True,
         "Generic": True,
+        "NV_Band_Pref": True,
         "QXDM": True,
         "UE_Cap": True
     },
@@ -727,6 +733,249 @@ Similar logic applies to NR bands for bands beyond the base range:
 | **Handle missing v9e0** | If v9e0 IE is absent, treat all "64" entries as actual Band 64 |
 | **Validate consistency** | v9e0 count should not exceed B64 placeholder count |
 
+### 6.9 MCFG NV Band Preference Parsing
+
+**Purpose:** Parse NV band preference items from MCFG XML to identify software-level band filtering applied before QXDM.
+
+#### 6.9.1 Overview
+
+MCFG (Modem Configuration) XML files contain NV (Non-Volatile) items that control band preferences at the software/firmware level. These NV items use **bitmask encoding** where each bit represents a specific band's enable/disable status.
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  NV Band Preference Flow                                        │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  MCFG XML → NV Items (bitmask) → SW Band Filtering → QXDM      │
+│                                                                 │
+│  If bit = 1: Band ENABLED                                       │
+│  If bit = 0: Band DISABLED (filtered at SW level)               │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+#### 6.9.2 NV Item Reference Table
+
+| NV ID | Name | RAT | Band Coverage | Bits | Notes |
+|-------|------|-----|---------------|------|-------|
+| **65633** | lte_bandpref | LTE | B1 - B64 | 64 bits (8 bytes) | Bit 0 = Band 1 |
+| **73680** | lte_bandpref_ext | LTE | B65 - B256 | 192 bits (24 bytes) | Bit 0 = Band 65 |
+| **74087** | nr5g_sa_bandpref | NR SA | All NR SA bands | Variable | Bitmask for NR SA |
+| **74213** | nr5g_nsa_bandpref | NR NSA | All NR NSA bands | Variable | Bitmask for NR NSA |
+| **441** | band_pref | 2G/3G (CGW) | GSM/WCDMA bands | Variable | Legacy RATs |
+| **946** | band_pref_16_31 | 2G/3G (CGW) | Extended GSM/WCDMA | Variable | Legacy RATs |
+| **2954** | band_pref_32_63 | 2G/3G (CGW) | Further extension | Variable | Legacy RATs |
+
+#### 6.9.3 MCFG XML Format
+
+NV items in MCFG XML follow this structure:
+
+```xml
+<NvItemData id="65633" subs_id="0" encoding="dec">
+  <Member name="lte_bandpref" encoding="dec">
+    223 56 14 187 224 135 0 0
+  </Member>
+</NvItemData>
+```
+
+**Key Attributes:**
+- `id`: NV item ID number
+- `subs_id`: Subscription ID (typically 0 for primary SIM)
+- `encoding`: Value encoding format ("dec" = decimal bytes)
+- `<Member>`: Contains the actual byte values (space-separated)
+
+#### 6.9.4 Bit-to-Band Mapping (NV 65633 - LTE B1-B64)
+
+**Critical: Bit 0 = Band 1 (1-indexed mapping)**
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  NV 65633: lte_bandpref (8 bytes = 64 bits)                     │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  Byte layout (little-endian bit order within each byte):        │
+│                                                                 │
+│  Byte 0 (bits 0-7):   Bands 1-8                                 │
+│  Byte 1 (bits 8-15):  Bands 9-16                                │
+│  Byte 2 (bits 16-23): Bands 17-24                               │
+│  Byte 3 (bits 24-31): Bands 25-32                               │
+│  Byte 4 (bits 32-39): Bands 33-40                               │
+│  Byte 5 (bits 40-47): Bands 41-48                               │
+│  Byte 6 (bits 48-55): Bands 49-56                               │
+│  Byte 7 (bits 56-63): Bands 57-64                               │
+│                                                                 │
+│  Formula: Band N is enabled if bit (N-1) is set to 1            │
+│           Byte index = (N-1) // 8                               │
+│           Bit position within byte = (N-1) % 8                  │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+#### 6.9.5 Decoding Example (NV 65633)
+
+**Input:** `223 56 14 187 224 135 0 0`
+
+**Step-by-step decoding:**
+
+```
+Byte 0: 223 = 0b11011111
+  Bit 0 (B1):  1 → ENABLED
+  Bit 1 (B2):  1 → ENABLED
+  Bit 2 (B3):  1 → ENABLED
+  Bit 3 (B4):  1 → ENABLED
+  Bit 4 (B5):  1 → ENABLED
+  Bit 5 (B6):  0 → DISABLED  ←── B6 filtered!
+  Bit 6 (B7):  1 → ENABLED
+  Bit 7 (B8):  1 → ENABLED
+
+Byte 1: 56 = 0b00111000
+  Bit 0 (B9):  0 → DISABLED
+  Bit 1 (B10): 0 → DISABLED
+  Bit 2 (B11): 0 → DISABLED
+  Bit 3 (B12): 1 → ENABLED
+  Bit 4 (B13): 1 → ENABLED
+  Bit 5 (B14): 1 → ENABLED
+  Bit 6 (B15): 0 → DISABLED
+  Bit 7 (B16): 0 → DISABLED
+
+... (continue for all 8 bytes)
+
+Byte 5: 135 = 0b10000111
+  Bit 0 (B41): 1 → ENABLED
+  Bit 1 (B42): 1 → ENABLED
+  Bit 2 (B43): 1 → ENABLED
+  Bit 3 (B44): 0 → DISABLED
+  Bit 4 (B45): 0 → DISABLED
+  Bit 5 (B46): 0 → DISABLED  ←── B46 (LAA) filtered!
+  Bit 6 (B47): 0 → DISABLED
+  Bit 7 (B48): 1 → ENABLED
+```
+
+**Result:** Bands like B6, B46 are disabled at SW level even if HW supports them.
+
+#### 6.9.6 Parsing Algorithm
+
+```python
+def parse_nv_band_pref(nv_bytes: List[int], start_band: int = 1) -> Set[int]:
+    """
+    Parse NV band preference bitmask to extract enabled bands.
+
+    Args:
+        nv_bytes: List of byte values from MCFG XML
+        start_band: Starting band number (1 for NV65633, 65 for NV73680)
+
+    Returns:
+        Set of enabled band numbers (1-indexed)
+    """
+    enabled_bands = set()
+
+    for byte_idx, byte_val in enumerate(nv_bytes):
+        for bit_pos in range(8):
+            if byte_val & (1 << bit_pos):  # Check if bit is set
+                band_num = start_band + (byte_idx * 8) + bit_pos
+                enabled_bands.add(band_num)
+
+    return enabled_bands
+
+
+def parse_mcfg_xml(mcfg_file: str) -> Dict[str, Set[int]]:
+    """
+    Parse MCFG XML to extract band preferences from NV items.
+
+    Returns:
+        Dict with keys: 'lte_bands', 'lte_ext_bands', 'nr_sa_bands', 'nr_nsa_bands'
+    """
+    result = {
+        'lte_bands': set(),      # From NV 65633
+        'lte_ext_bands': set(),  # From NV 73680
+        'nr_sa_bands': set(),    # From NV 74087
+        'nr_nsa_bands': set()    # From NV 74213
+    }
+
+    tree = ET.parse(mcfg_file)
+
+    for nv_item in tree.findall('.//NvItemData'):
+        nv_id = int(nv_item.get('id', 0))
+        member = nv_item.find('Member')
+
+        if member is not None and member.text:
+            bytes_str = member.text.strip()
+            nv_bytes = [int(b) for b in bytes_str.split()]
+
+            if nv_id == 65633:
+                result['lte_bands'] = parse_nv_band_pref(nv_bytes, start_band=1)
+            elif nv_id == 73680:
+                result['lte_ext_bands'] = parse_nv_band_pref(nv_bytes, start_band=65)
+            elif nv_id == 74087:
+                result['nr_sa_bands'] = parse_nv_band_pref(nv_bytes, start_band=1)
+            elif nv_id == 74213:
+                result['nr_nsa_bands'] = parse_nv_band_pref(nv_bytes, start_band=1)
+
+    return result
+```
+
+#### 6.9.7 Integration with Band Tracer
+
+The NV Band Pref stage fits between Generic Restrictions and QXDM in the filtering pipeline:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  Band Tracing with NV Band Pref Stage                           │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  For each band:                                                 │
+│                                                                 │
+│  1. RFC           → Is band in RF Card capability?              │
+│  2. HW Filter     → Is band allowed by hardware filtering?      │
+│  3. Carrier Policy→ Is band NOT excluded by carrier?            │
+│  4. Generic Restr → Is band NOT restricted by regulations?      │
+│  5. NV Band Pref  → Is band enabled in MCFG NV bitmask?  [NEW]  │
+│  6. QXDM          → Does band appear in 0x1CCA log?             │
+│  7. UE Capability → Does band appear in UE Cap?                 │
+│                                                                 │
+│  If NV Band Pref FAIL: Status = "FILTERED", Filtered_At = "NV"  │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+#### 6.9.8 Output Format Updates
+
+**Band Tracing Table with NV Stage:**
+
+```
+LTE BAND TRACING:
+---------------------------------------------------------------------------------
+Band   RFC    HW     Carrier  Generic  NV_Pref  QXDM   UE_Cap  Status    Filtered At
+---------------------------------------------------------------------------------
+B1     PASS   PASS   PASS     PASS     PASS     PASS   PASS    ENABLED   -
+B6     PASS   PASS   PASS     PASS     FAIL     FAIL   FAIL    FILTERED  NV_Pref
+B46    PASS   PASS   PASS     PASS     FAIL     FAIL   FAIL    FILTERED  NV_Pref
+---------------------------------------------------------------------------------
+```
+
+#### 6.9.9 Handling Missing NV Items
+
+| Scenario | Behavior |
+|----------|----------|
+| **MCFG XML not provided** | NV_Pref stage skipped, all bands PASS |
+| **NV 65633 missing** | LTE B1-B64 NV filtering skipped |
+| **NV 73680 missing** | LTE B65+ NV filtering skipped |
+| **NV 74087 missing** | NR SA NV filtering skipped |
+| **NV 74213 missing** | NR NSA NV filtering skipped |
+
+**Important:** Missing NV items are common and expected. The tool should gracefully skip NV filtering for RATs where the corresponding NV item is not present in the MCFG XML.
+
+#### 6.9.10 Implementation Requirements
+
+| Requirement | Description |
+|-------------|-------------|
+| **Parse MCFG XML** | Extract NvItemData elements with specific IDs |
+| **Handle encoding** | Support "dec" (decimal) encoding; add "hex" if needed |
+| **Bit mapping** | Bit 0 = Band 1 (1-indexed, NOT 0-indexed) |
+| **Little-endian bytes** | Byte 0 contains lowest bands (B1-B8) |
+| **Graceful missing** | If NV item absent, skip that RAT's NV filtering |
+| **Combine LTE** | Merge NV65633 (B1-64) and NV73680 (B65+) for full LTE coverage |
+
 ---
 
 ## 7. Stage 2: Claude CLI Review
@@ -1075,6 +1324,7 @@ Band_Combos_Analyzer/
 |   |   +-- hw_filter_parser.py       # Parse hardware_band_filtering.xml
 |   |   +-- carrier_policy_parser.py  # Parse carrier_policy.xml
 |   |   +-- generic_restriction_parser.py
+|   |   +-- mcfg_parser.py            # Parse MCFG NV band preferences
 |   |   +-- mdb_parser.py             # Parse mcc2bands.xml
 |   |   +-- qxdm_log_parser.py        # Parse 0x1CCA logs
 |   |   +-- ue_capability_parser.py   # Parse UE Capability
@@ -1123,6 +1373,7 @@ set RFC_FILE=Input\rfc.xml
 set HW_FILTER_FILE=Input\hardware_band_filtering.xml
 set CARRIER_FILE=Input\carrier_policy.xml
 set GENERIC_FILE=Input\generic_band_restrictions.xml
+set MCFG_FILE=Input\mcfg_sw_gen_VoLTE.xml
 set MDB_FILE=Input\MDB\mcc2bands\mcc2bands.xml
 set QXDM_FILE=Input\qxdm_log.txt
 set UE_CAP_FILE=Input\ue_capability.txt
@@ -1135,6 +1386,7 @@ python -m src.main ^
     --hw-filter "%HW_FILTER_FILE%" ^
     --carrier "%CARRIER_FILE%" ^
     --generic "%GENERIC_FILE%" ^
+    --mcfg "%MCFG_FILE%" ^
     --mdb "%MDB_FILE%" --mcc %TARGET_MCC% ^
     --qxdm "%QXDM_FILE%" ^
     --ue-cap "%UE_CAP_FILE%"
@@ -1179,6 +1431,7 @@ python -m src.main \
     --hw-filter "Input/hardware_band_filtering.xml" \
     --carrier "Input/carrier_policy.xml" \
     --generic "Input/generic_band_restrictions.xml" \
+    --mcfg "Input/mcfg_sw_gen_VoLTE.xml" \
     --mdb "Input/MDB/mcc2bands/mcc2bands.xml" --mcc 310 \
     --qxdm "Input/qxdm_log.txt" \
     --ue-cap "Input/ue_capability.txt"
@@ -1570,6 +1823,6 @@ Band_Combos_Analyzer/
 
 ---
 
-*Document Version: 2.7*
-*Last Updated: Added band indexing rules (Section 6.7) and UE Capability extended band parsing for bands 64+ (Section 6.8)*
+*Document Version: 2.8*
+*Last Updated: Added MCFG NV Band Preference parsing (Section 6.9) - SW-level band filtering from NV items*
 *Status: IMPLEMENTATION IN PROGRESS*

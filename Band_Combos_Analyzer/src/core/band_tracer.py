@@ -55,13 +55,14 @@ class BandTracer:
     2. HW Filter - Hardware band filtering
     3. Carrier - Carrier policy exclusions
     4. Generic - FCC/regulatory restrictions
-    5. QXDM - Actual device bands (0x1CCA)
-    6. UE Cap - Network-reported bands
+    5. NV_Pref - MCFG NV band preferences (SW level filtering)
+    6. QXDM - Actual device bands (0x1CCA)
+    7. UE Cap - Network-reported bands
 
     Note: MDB is NOT a filtering stage. MDB data is stored for Claude context only.
     """
 
-    STAGES = ['RFC', 'HW_Filter', 'Carrier', 'Generic', 'QXDM', 'UE_Cap']
+    STAGES = ['RFC', 'HW_Filter', 'Carrier', 'Generic', 'NV_Pref', 'QXDM', 'UE_Cap']
 
     def __init__(self):
         # Bands from each source
@@ -78,6 +79,15 @@ class BandTracer:
 
         self.generic_lte_excluded: Set[int] = set()
         self.generic_nr_excluded: Set[int] = set()
+
+        # NV Band Preferences (enabled bands from MCFG NV items)
+        self.nv_lte: Set[int] = set()          # LTE enabled bands from NV 65633 + 73680
+        self.nv_nr_sa: Set[int] = set()        # NR SA enabled bands from NV 74087
+        self.nv_nr_nsa: Set[int] = set()       # NR NSA enabled bands from NV 74213
+        self.nv_lte_base_present: bool = False   # Is NV 65633 (B1-64) present?
+        self.nv_lte_ext_present: bool = False    # Is NV 73680 (B65+) present?
+        self.nv_nr_sa_present: bool = False    # Is NV 74087 present?
+        self.nv_nr_nsa_present: bool = False   # Is NV 74213 present?
 
         self.mdb_lte: Set[int] = set()
         self.mdb_nr_sa: Set[int] = set()
@@ -99,6 +109,7 @@ class BandTracer:
             'HW_Filter': DocumentStatus('HW Band Filtering', False),
             'Carrier': DocumentStatus('Carrier Policy', False),
             'Generic': DocumentStatus('Generic Restrictions', False),
+            'NV_Pref': DocumentStatus('MCFG NV Band Pref', False),  # NV band preferences
             'MDB': DocumentStatus('MDB Config (Context)', False),  # Context only, not filtering
             'QXDM': DocumentStatus('QXDM Log', False),
             'UE_Cap': DocumentStatus('UE Capability', False),
@@ -134,6 +145,44 @@ class BandTracer:
         self.generic_nr_excluded = nr
         self.doc_status['Generic'].loaded = True
         self.doc_status['Generic'].details = f"Excl: {len(lte)} LTE, {len(nr)} NR"
+
+    def set_nv_band_prefs(self, lte: Set[int], nr_sa: Set[int], nr_nsa: Set[int],
+                         lte_base_present: bool = False, lte_ext_present: bool = False,
+                         nr_sa_present: bool = False, nr_nsa_present: bool = False):
+        """
+        Set NV band preferences (enabled bands from MCFG NV items).
+
+        Args:
+            lte: Set of enabled LTE bands from NV 65633 + NV 73680
+            nr_sa: Set of enabled NR SA bands from NV 74087
+            nr_nsa: Set of enabled NR NSA bands from NV 74213
+            lte_base_present: Whether NV 65633 (B1-64) was found
+            lte_ext_present: Whether NV 73680 (B65+) was found
+            nr_sa_present: Whether NR SA NV item was found
+            nr_nsa_present: Whether NR NSA NV item was found
+        """
+        self.nv_lte = lte
+        self.nv_nr_sa = nr_sa
+        self.nv_nr_nsa = nr_nsa
+        self.nv_lte_base_present = lte_base_present
+        self.nv_lte_ext_present = lte_ext_present
+        self.nv_nr_sa_present = nr_sa_present
+        self.nv_nr_nsa_present = nr_nsa_present
+        self.doc_status['NV_Pref'].loaded = True
+
+        # Build details string
+        details_parts = []
+        if lte_base_present or lte_ext_present:
+            details_parts.append(f"{len(lte)} LTE")
+        if nr_sa_present:
+            details_parts.append(f"{len(nr_sa)} NR SA")
+        if nr_nsa_present:
+            details_parts.append(f"{len(nr_nsa)} NR NSA")
+
+        if details_parts:
+            self.doc_status['NV_Pref'].details = "Enabled: " + ", ".join(details_parts)
+        else:
+            self.doc_status['NV_Pref'].details = "No band pref NVs found"
 
     def set_mdb_bands(self, lte: Set[int], nr_sa: Set[int], nr_nsa: Set[int],
                       lte_all: bool = False, nr_sa_all: bool = False, nr_nsa_all: bool = False):
@@ -219,9 +268,33 @@ class BandTracer:
             else:
                 result.stages['Generic'] = BandStatus.PASS
 
+        # Stage 5: NV Band Preference (MCFG NV items)
+        # NV 65633 covers B1-64, NV 73680 covers B65+
+        # Only check NV if the corresponding NV item for this band range is present
+        if filtered:
+            result.stages['NV_Pref'] = BandStatus.SKIPPED
+        elif not self.doc_status['NV_Pref'].loaded:
+            result.stages['NV_Pref'] = BandStatus.NA
+        else:
+            # Determine which NV item should cover this band
+            if band <= 64:
+                nv_applicable = self.nv_lte_base_present
+            else:
+                nv_applicable = self.nv_lte_ext_present
+
+            if not nv_applicable:
+                # NV for this band range not present - skip check
+                result.stages['NV_Pref'] = BandStatus.NA
+            elif band in self.nv_lte:
+                result.stages['NV_Pref'] = BandStatus.PASS
+            else:
+                result.stages['NV_Pref'] = BandStatus.FAIL
+                filtered = True
+                result.filtered_at = 'NV_Pref'
+
         # Note: MDB is NOT a filtering stage - data stored for Claude context only
 
-        # Stage 5: QXDM
+        # Stage 6: QXDM
         if not self.doc_status['QXDM'].loaded:
             result.stages['QXDM'] = BandStatus.NA
         else:
@@ -230,7 +303,7 @@ class BandTracer:
             else:
                 result.stages['QXDM'] = BandStatus.FAIL
 
-        # Stage 6: UE Capability
+        # Stage 7: UE Capability
         if not self.doc_status['UE_Cap'].loaded:
             result.stages['UE_Cap'] = BandStatus.NA
         else:
@@ -253,6 +326,8 @@ class BandTracer:
         hw_bands = self.hw_nr_sa if mode == 'SA' else self.hw_nr_nsa
         carrier_excluded = self.carrier_nr_sa_excluded if mode == 'SA' else self.carrier_nr_nsa_excluded
         qxdm_bands = self.qxdm_nr_sa if mode == 'SA' else self.qxdm_nr_nsa
+        nv_bands = self.nv_nr_sa if mode == 'SA' else self.nv_nr_nsa
+        nv_present = self.nv_nr_sa_present if mode == 'SA' else self.nv_nr_nsa_present
 
         # Stage 1: RFC
         if self.doc_status['RFC'].loaded:
@@ -304,9 +379,23 @@ class BandTracer:
             else:
                 result.stages['Generic'] = BandStatus.PASS
 
+        # Stage 5: NV Band Preference (MCFG NV items)
+        if filtered:
+            result.stages['NV_Pref'] = BandStatus.SKIPPED
+        elif not self.doc_status['NV_Pref'].loaded or not nv_present:
+            # NV item not present - skip this check (band passes by default)
+            result.stages['NV_Pref'] = BandStatus.NA
+        else:
+            if band in nv_bands:
+                result.stages['NV_Pref'] = BandStatus.PASS
+            else:
+                result.stages['NV_Pref'] = BandStatus.FAIL
+                filtered = True
+                result.filtered_at = 'NV_Pref'
+
         # Note: MDB is NOT a filtering stage - data stored for Claude context only
 
-        # Stage 5: QXDM
+        # Stage 6: QXDM
         if not self.doc_status['QXDM'].loaded:
             result.stages['QXDM'] = BandStatus.NA
         else:
@@ -315,7 +404,7 @@ class BandTracer:
             else:
                 result.stages['QXDM'] = BandStatus.FAIL
 
-        # Stage 6: UE Capability
+        # Stage 7: UE Capability
         if not self.doc_status['UE_Cap'].loaded:
             result.stages['UE_Cap'] = BandStatus.NA
         else:

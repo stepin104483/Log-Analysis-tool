@@ -121,6 +121,8 @@ Stage 2 (Claude review):
                         help='Carrier policy XML')
     parser.add_argument('--generic', metavar='FILE',
                         help='Generic band restrictions XML')
+    parser.add_argument('--mcfg', metavar='FILE',
+                        help='MCFG XML file (NV band preferences)')
     parser.add_argument('--mdb', metavar='FILE',
                         help='MDB mcc2bands XML')
     parser.add_argument('--mcc', metavar='MCC',
@@ -149,7 +151,7 @@ def main():
 
     # Check if at least one input is provided
     inputs = [args.rfc, args.hw_filter, args.carrier, args.generic,
-              args.mdb, args.qxdm, args.ue_cap]
+              args.mcfg, args.mdb, args.qxdm, args.ue_cap]
     if not any(inputs):
         print("Error: At least one input file must be provided.")
         print("Use --help for usage information.")
@@ -165,6 +167,7 @@ def main():
         hw_filter_path=args.hw_filter,
         carrier_policy_path=args.carrier,
         generic_restriction_path=args.generic,
+        mcfg_path=args.mcfg,
         mdb_path=args.mdb,
         qxdm_log_path=args.qxdm,
         ue_capability_path=args.ue_cap,

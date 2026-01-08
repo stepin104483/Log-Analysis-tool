@@ -9,9 +9,10 @@ from pathlib import Path
 
 from ..parsers import (
     parse_rfc_xml, parse_hw_filter_xml, parse_carrier_policy_xml,
-    parse_generic_restriction_xml, parse_mcc2bands_xml,
-    parse_qxdm_log, parse_ue_capability
+    parse_generic_restriction_xml, parse_mcfg_xml, get_all_lte_bands,
+    parse_mcc2bands_xml, parse_qxdm_log, parse_ue_capability
 )
+from ..parsers.mcfg_parser import NV_LTE_BANDPREF, NV_NR5G_SA_BANDPREF, NV_NR5G_NSA_BANDPREF
 from .band_tracer import BandTracer, BandTraceResult, FinalStatus, BandStatus
 
 
@@ -22,6 +23,7 @@ class AnalysisInput:
     hw_filter_path: Optional[str] = None
     carrier_policy_path: Optional[str] = None
     generic_restriction_path: Optional[str] = None
+    mcfg_path: Optional[str] = None
     mdb_path: Optional[str] = None
     qxdm_log_path: Optional[str] = None
     ue_capability_path: Optional[str] = None
@@ -120,6 +122,29 @@ class BandAnalyzer:
                 )
             else:
                 self.errors.append(f"Failed to parse Generic Restrictions: {inputs.generic_restriction_path}")
+
+        # Parse MCFG NV Band Preferences
+        if inputs.mcfg_path:
+            mcfg_data = parse_mcfg_xml(inputs.mcfg_path)
+            if mcfg_data:
+                # Combine LTE bands from NV 65633 (B1-64) and NV 73680 (B65+)
+                all_lte_bands = get_all_lte_bands(mcfg_data)
+
+                # NV 73680 presence is determined by checking if lte_ext_bands is non-empty
+                # (it only gets populated if NV 73680 was found)
+                lte_ext_present = bool(mcfg_data.lte_ext_bands)
+
+                self.tracer.set_nv_band_prefs(
+                    lte=all_lte_bands,
+                    nr_sa=mcfg_data.nr_sa_bands,
+                    nr_nsa=mcfg_data.nr_nsa_bands,
+                    lte_base_present=mcfg_data.nv_present[NV_LTE_BANDPREF],
+                    lte_ext_present=lte_ext_present,
+                    nr_sa_present=mcfg_data.nv_present[NV_NR5G_SA_BANDPREF],
+                    nr_nsa_present=mcfg_data.nv_present[NV_NR5G_NSA_BANDPREF]
+                )
+            else:
+                self.errors.append(f"Failed to parse MCFG: {inputs.mcfg_path}")
 
         # Parse MDB
         if inputs.mdb_path:
