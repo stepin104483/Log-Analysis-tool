@@ -6,22 +6,28 @@ Expected formats:
 1. JSON format from network logs
 2. Text format with bandEUTRA, bandNR lists
 3. ASN.1 decoded format
+
+Note: Handles 3GPP TS 36.331 Section 6.3.6 for LTE bands 64+:
+      - supportedBandListEUTRA covers bands 1-64
+      - supportedBandListEUTRA-v9e0 covers bands 65+ (B66, B68, B71, etc.)
+      - "64" entries in base list can be placeholders for v9e0 bands
+      - Formula: actual B64 count = (count of "64" in base) - (count in v9e0)
 """
 
 import re
 import json
-from typing import Dict, Set, Optional, List
+from typing import Dict, Set, Optional, List, Tuple
 from dataclasses import dataclass
 
 
 @dataclass
 class UECapabilityBands:
     """Container for bands extracted from UE Capability"""
-    lte_bands: Set[int]       # bandEUTRA / E-UTRA bands
+    lte_bands: Set[int]       # bandEUTRA / E-UTRA bands (processed with v9e0)
     nr_bands: Set[int]        # NR bands (combined SA/NSA from UE cap)
     nr_sa_bands: Set[int]     # NR SA specific if available
     nr_nsa_bands: Set[int]    # NR NSA specific if available
-    raw_data: Dict[str, any]  # Raw extracted data
+    raw_data: Dict[str, any]  # Raw extracted data including v9e0 info
 
 
 def parse_band_list_text(text: str) -> Set[int]:
@@ -58,6 +64,94 @@ def parse_band_list_text(text: str) -> Set[int]:
             continue
 
     return bands
+
+
+def extract_lte_bands_with_v9e0(content: str) -> Tuple[Set[int], List[int], List[int]]:
+    """
+    Extract LTE bands handling v9e0 extension for bands 65+.
+
+    Per 3GPP TS 36.331 Section 6.3.6:
+    - supportedBandListEUTRA covers bands 1-64
+    - supportedBandListEUTRA-v9e0 covers bands 65+
+    - "64" in base list can be placeholder for v9e0 bands
+
+    Args:
+        content: UE Capability text content
+
+    Returns:
+        Tuple of (final_lte_bands, base_bands_list, v9e0_bands_list)
+    """
+    final_bands: Set[int] = set()
+    base_bands_list: List[int] = []
+    v9e0_bands_list: List[int] = []
+
+    # Extract bands from supportedBandListEUTRA (individual bandEUTRA entries)
+    # Pattern: "bandEUTRA: 3" or "bandEUTRA 3," or "bandEUTRA 3"
+    # Exclude bandEUTRA-v9e0 and bandEUTRA-v1090 patterns
+    base_pattern = r'(?<!-)bandEUTRA\s*[:=]?\s*(\d+)'
+    base_matches = re.findall(base_pattern, content)
+
+    for match in base_matches:
+        try:
+            band = int(match)
+            if 0 < band <= 64:
+                base_bands_list.append(band)
+        except ValueError:
+            pass
+
+    # Extract bands from supportedBandListEUTRA-v9e0
+    # Pattern: "bandEUTRA-v9e0: 66" or "bandEUTRA-v9e0 66"
+    v9e0_pattern = r'bandEUTRA-v9e0\s*[:=]?\s*(\d+)'
+    v9e0_matches = re.findall(v9e0_pattern, content)
+
+    for match in v9e0_matches:
+        try:
+            band = int(match)
+            if band > 64:  # v9e0 bands should be > 64
+                v9e0_bands_list.append(band)
+        except ValueError:
+            pass
+
+    # Also check for bandEUTRA-v1090 (another extension variant)
+    v1090_pattern = r'bandEUTRA-v1090\s*[:=]?\s*(\d+)'
+    v1090_matches = re.findall(v1090_pattern, content)
+
+    for match in v1090_matches:
+        try:
+            band = int(match)
+            if band > 64:
+                v9e0_bands_list.append(band)
+        except ValueError:
+            pass
+
+    # Remove duplicates from v9e0 list while preserving order for counting
+    seen_v9e0 = set()
+    unique_v9e0: List[int] = []
+    for band in v9e0_bands_list:
+        if band not in seen_v9e0:
+            seen_v9e0.add(band)
+            unique_v9e0.append(band)
+    v9e0_bands_list = unique_v9e0
+
+    # Count "64" entries in base list
+    count_64_in_base = base_bands_list.count(64)
+
+    # Add all non-64 bands from base list
+    for band in base_bands_list:
+        if band != 64:
+            final_bands.add(band)
+
+    # Add v9e0 bands (these are bands 65+)
+    for band in v9e0_bands_list:
+        final_bands.add(band)
+
+    # Determine actual B64 support using the formula
+    # actual B64 count = (count of "64" in base) - (count in v9e0)
+    actual_b64_count = count_64_in_base - len(v9e0_bands_list)
+    if actual_b64_count > 0:
+        final_bands.add(64)
+
+    return final_bands, base_bands_list, v9e0_bands_list
 
 
 def parse_ue_capability_json(content: str) -> Optional[Dict]:
@@ -148,14 +242,17 @@ def parse_ue_capability(file_path: str) -> Optional[UECapabilityBands]:
         # Parse as text format
         raw_data['format'] = 'text'
 
-        # Patterns for LTE bands
-        lte_patterns = [
-            r'bandEUTRA\s*[:=]\s*([^\n]+)',
-            r'supportedBandListEUTRA\s*[:=]\s*([^\n]+)',
-            r'E-?UTRA\s*[Bb]ands?\s*[:=]\s*([^\n]+)',
-            r'LTE\s*[Bb]ands?\s*[:=]\s*([^\n]+)',
-            r'freqBandIndicator\s*[:=]\s*(\d+)',
-        ]
+        # Use the new v9e0-aware LTE band extraction
+        lte_bands, base_bands_list, v9e0_bands_list = extract_lte_bands_with_v9e0(content)
+
+        # Store v9e0 info in raw_data for reference
+        count_64_in_base = base_bands_list.count(64)
+        raw_data['lte_v9e0'] = {
+            'base_band_count': len(base_bands_list),
+            'count_64_in_base': count_64_in_base,
+            'v9e0_bands': v9e0_bands_list,
+            'actual_b64_support': count_64_in_base - len(v9e0_bands_list) > 0
+        }
 
         # Patterns for NR bands
         nr_patterns = [
@@ -177,13 +274,15 @@ def parse_ue_capability(file_path: str) -> Optional[UECapabilityBands]:
             r'nsa-?BandList\s*[:=]\s*([^\n]+)',
         ]
 
-        # Extract LTE bands
-        for pattern in lte_patterns:
-            matches = re.findall(pattern, content, re.IGNORECASE)
-            for match in matches:
-                lte_bands.update(parse_band_list_text(match))
+        # Extract NR bands (individual entries)
+        individual_nr = re.findall(r'bandNR\s*[:=]?\s*(\d+)', content)
+        for band in individual_nr:
+            try:
+                nr_bands.add(int(band))
+            except ValueError:
+                pass
 
-        # Extract NR bands
+        # Also try pattern-based extraction for NR
         for pattern in nr_patterns:
             matches = re.findall(pattern, content, re.IGNORECASE)
             for match in matches:
@@ -200,25 +299,6 @@ def parse_ue_capability(file_path: str) -> Optional[UECapabilityBands]:
             matches = re.findall(pattern, content, re.IGNORECASE)
             for match in matches:
                 nr_nsa_bands.update(parse_band_list_text(match))
-
-        # Also look for individual band entries (common in ASN.1 decoded logs)
-        # Formats:
-        #   "bandEUTRA: 1" or "bandEUTRA 1," or "bandEUTRA 1"
-        #   "bandNR: 77" or "bandNR 77," or "bandNR 77"
-        individual_lte = re.findall(r'bandEUTRA\s*[:=]?\s*(\d+)', content)
-        individual_nr = re.findall(r'bandNR\s*[:=]?\s*(\d+)', content)
-
-        for band in individual_lte:
-            try:
-                lte_bands.add(int(band))
-            except ValueError:
-                pass
-
-        for band in individual_nr:
-            try:
-                nr_bands.add(int(band))
-            except ValueError:
-                pass
 
     # If no SA/NSA split, use combined NR bands
     if not nr_sa_bands and not nr_nsa_bands:
@@ -259,9 +339,20 @@ if __name__ == "__main__":
                 print(f"  NR SA ({len(result.nr_sa_bands)}): {format_bands_display(result.nr_sa_bands, 'n')}")
             if result.nr_nsa_bands != result.nr_bands:
                 print(f"  NR NSA ({len(result.nr_nsa_bands)}): {format_bands_display(result.nr_nsa_bands, 'n')}")
+
+            # Show v9e0 details if available
+            if 'lte_v9e0' in result.raw_data:
+                v9e0_info = result.raw_data['lte_v9e0']
+                print(f"\nLTE Band 64+ (v9e0 Extension) Details:")
+                print(f"  Count of '64' in supportedBandListEUTRA: {v9e0_info['count_64_in_base']}")
+                print(f"  Bands in supportedBandListEUTRA-v9e0: {v9e0_info['v9e0_bands']}")
+                print(f"  Actual B64 support: {v9e0_info['actual_b64_support']}")
+                if v9e0_info['v9e0_bands']:
+                    print(f"  Extended bands (65+): {', '.join(f'B{b}' for b in sorted(v9e0_info['v9e0_bands']))}")
     else:
         print("Usage: python ue_capability_parser.py <ue_capability_file>")
         print("\nSupported formats:")
         print("  - JSON with bandEUTRA/bandNR fields")
         print("  - Text with 'LTE Bands: 1, 2, 3' format")
         print("  - ASN.1 decoded with 'bandEUTRA: 1' entries")
+        print("\nNote: Handles 3GPP TS 36.331 v9e0 extension for bands 65+")

@@ -1,6 +1,9 @@
 """
 Generic Band Restrictions XML Parser
 Parses generic_band_restrictions.xml for regulatory (FCC, etc.) band exclusions.
+
+Note: Generic Restrictions uses 0-indexed bands (0 = Band 1, 6 = Band 7, etc.)
+      All band numbers are converted to 1-indexed (actual band numbers) during parsing.
 """
 
 import xml.etree.ElementTree as ET
@@ -13,19 +16,33 @@ class GenericRestrictionBands:
     """Container for bands extracted from Generic Restrictions"""
     policy_name: str
     policy_version: str
-    # FCC compliant exclusions
+    # FCC compliant exclusions - converted to 1-indexed
     lte_excluded: Set[int]
     nr_sa_excluded: Set[int]
     nr_nsa_excluded: Set[int]
     gw_excluded: Set[int]
     # MCC lists for regional restrictions
     mcc_lists: Dict[str, List[str]]
-    # All restriction configs
+    # All restriction configs (raw 0-indexed values)
     restriction_configs: Dict[str, Dict]
 
 
-def parse_band_numbers(text: str) -> Set[int]:
-    """Parse space-separated band numbers"""
+def convert_0indexed_to_bands(indices: Set[int]) -> Set[int]:
+    """
+    Convert 0-indexed band positions to actual band numbers.
+    Generic Restrictions uses 0-indexed: value 0 = Band 1, value 6 = Band 7, etc.
+
+    Args:
+        indices: Set of 0-indexed values from generic restrictions
+
+    Returns:
+        Set of actual band numbers (1-indexed)
+    """
+    return {idx + 1 for idx in indices}
+
+
+def parse_band_numbers_raw(text: str) -> Set[int]:
+    """Parse space-separated band numbers (raw 0-indexed values)"""
     result: Set[int] = set()
     if not text or not text.strip():
         return result
@@ -37,6 +54,20 @@ def parse_band_numbers(text: str) -> Set[int]:
             continue
 
     return result
+
+
+def parse_band_numbers(text: str) -> Set[int]:
+    """
+    Parse space-separated band numbers and convert to 1-indexed.
+
+    Args:
+        text: Space-separated 0-indexed numbers
+
+    Returns:
+        Set of actual band numbers (1-indexed)
+    """
+    raw_values = parse_band_numbers_raw(text)
+    return convert_0indexed_to_bands(raw_values)
 
 
 def parse_rf_band_list(elem: ET.Element) -> Dict:
@@ -149,12 +180,13 @@ if __name__ == "__main__":
             print(f"\n=== Generic Restriction Parser Results ===")
             print(f"Policy: {result.policy_name}")
             print(f"Version: {result.policy_version}")
+            print(f"\n(Note: All bands converted from 0-indexed to actual band numbers)")
 
             print(f"\nMCC Lists:")
             for name, mccs in result.mcc_lists.items():
                 print(f"  {name}: {' '.join(mccs)}")
 
-            print(f"\nFCC/Regulatory Excluded Bands:")
+            print(f"\nFCC/Regulatory Excluded Bands (converted to 1-indexed):")
             print(f"  LTE: {sorted(result.lte_excluded) if result.lte_excluded else 'None'}")
             print(f"  NR SA: {sorted(result.nr_sa_excluded) if result.nr_sa_excluded else 'None'}")
             print(f"  NR NSA: {sorted(result.nr_nsa_excluded) if result.nr_nsa_excluded else 'None'}")

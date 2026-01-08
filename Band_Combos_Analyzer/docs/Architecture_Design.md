@@ -506,6 +506,227 @@ Bit 7 = 1 → Band 8  ✓
 - QCAT tool integration for automatic log extraction
 - Support for other PM logs (future scope)
 
+### 6.7 Band Indexing Rules (CRITICAL)
+
+**CRITICAL**: Different Qualcomm configuration files use different band indexing conventions. Parsers MUST apply the correct conversion to ensure accurate band identification.
+
+#### 6.7.1 Indexing Summary Table
+
+| Document | Indexing | Conversion Required | Example |
+|----------|----------|---------------------|---------|
+| **RFC XML** | 1-indexed | None | `<band>7</band>` = Band 7 |
+| **HW Band Filtering** | 0-indexed | Add +1 | Value `6` = Band 7 |
+| **Carrier Policy** | 0-indexed | Add +1 | Value `6` = Band 7 |
+| **Generic Restrictions** | 0-indexed | Add +1 | Value `6` = Band 7 |
+| **MDB (mcc2bands)** | 0-indexed | Add +1 | Value `6` = Band 7 |
+| **QXDM (0x1CCA)** | 1-indexed | None | Bit 0 = Band 1, Bit 6 = Band 7 |
+| **UE Capability** | 1-indexed | None | `bandEUTRA: 7` = Band 7 |
+
+#### 6.7.2 0-Indexed Files (Qualcomm Internal Format)
+
+The following files use **0-indexed** band numbering where value `N` represents Band `N+1`:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  0-INDEXED FILES (Value N = Band N+1)                           │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  1. hardware_band_filtering.xml                                 │
+│     <NR_SA_BAND val="6"/>  →  n7 (not n6!)                      │
+│     <LTE_BAND val="37"/>   →  B38 (not B37!)                    │
+│                                                                 │
+│  2. carrier_policy.xml                                          │
+│     <Band>6</Band>         →  B7 (excluded band is B7)          │
+│                                                                 │
+│  3. generic_band_restrictions.xml                               │
+│     <band val="6"/>        →  B7                                │
+│                                                                 │
+│  4. MDB mcc2bands.xml                                           │
+│     <band>6</band>         →  B7                                │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+#### 6.7.3 1-Indexed Files (Standard/3GPP Format)
+
+The following files use **1-indexed** band numbering where value `N` represents Band `N`:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  1-INDEXED FILES (Value N = Band N)                             │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  1. RFC XML (RF Card)                                           │
+│     <band>7</band>         →  B7                                │
+│     <nr_band>38</nr_band>  →  n38                               │
+│                                                                 │
+│  2. QXDM 0x1CCA (PM RF Band Info)                               │
+│     Bit position 0 in "Lte Bands 1_64" = Band 1                 │
+│     Bit position 6 in "Lte Bands 1_64" = Band 7                 │
+│                                                                 │
+│  3. UE Capability Information                                   │
+│     bandEUTRA: 7           →  B7                                │
+│     bandNR: 78             →  n78                               │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+#### 6.7.4 Parser Implementation Notes
+
+```python
+# Example: HW Filter Parser (0-indexed → 1-indexed conversion)
+def parse_hw_filter(xml_file):
+    bands = []
+    for band_elem in root.findall('.//LTE_BAND'):
+        raw_value = int(band_elem.get('val'))
+        actual_band = raw_value + 1  # Convert 0-indexed to 1-indexed
+        bands.append(actual_band)
+    return bands
+
+# Example: RFC Parser (already 1-indexed, no conversion)
+def parse_rfc(xml_file):
+    bands = []
+    for band_elem in root.findall('.//band'):
+        actual_band = int(band_elem.text)  # Already 1-indexed
+        bands.append(actual_band)
+    return bands
+```
+
+#### 6.7.5 Common Indexing Errors to Avoid
+
+| Error | Symptom | Solution |
+|-------|---------|----------|
+| Not converting 0-indexed files | B6, B37 flagged as anomalies when B7, B38 work correctly | Apply +1 conversion to HW Filter, Carrier, Generic, MDB parsers |
+| Double-converting RFC bands | B8 reported when B7 is expected | RFC is already 1-indexed, do not add +1 |
+| Misaligned QXDM bits | All bands off by 1 | QXDM bit 0 = Band 1 (1-indexed), not Band 0 |
+
+### 6.8 UE Capability Extended Band Parsing (Bands 64+)
+
+**Reference**: 3GPP TS 36.331 (RRC Protocol specification for E-UTRA), Section 6.3.6
+
+#### 6.8.1 Problem Statement
+
+The UE Capability Information uses two separate Information Elements (IEs) for LTE bands:
+- `supportedBandListEUTRA`: Covers bands 1-64
+- `supportedBandListEUTRA-v9e0`: Extension for bands 65 and above (B65, B66, B68, B71, etc.)
+
+**Challenge**: When bands 65+ are supported, `supportedBandListEUTRA` contains "64" as a **placeholder** value, and the actual band number is in the v9e0 extension.
+
+#### 6.8.2 UE Capability Structure
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  UE-EUTRA-Capability                                            │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  supportedBandListEUTRA:     [1, 2, 3, 7, 64, 64, 64, 64]      │
+│                               ↑↑↑↑↑↑↑↑↑     ↑↑↑↑↑↑↑↑↑↑↑↑       │
+│                               Actual        Placeholders        │
+│                               bands 1-64    for v9e0 bands      │
+│                                                                 │
+│  supportedBandListEUTRA-v9e0: [66, 68, 71]                      │
+│                                ↑↑↑↑↑↑↑↑↑↑↑                      │
+│                                Actual band numbers              │
+│                                for bands 65+                    │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+#### 6.8.3 Band 64 Mapping Logic
+
+**Formula for determining actual Band 64 support:**
+
+```
+Actual B64 count = (count of "64" in supportedBandListEUTRA) - (count in supportedBandListEUTRA-v9e0)
+```
+
+**Example Scenarios:**
+
+| supportedBandListEUTRA | supportedBandListEUTRA-v9e0 | Calculation | Supported Bands |
+|------------------------|----------------------------|-------------|-----------------|
+| [1, 2, 3, 7, 64, 64, 64, 64] | [66, 68, 71] | 4 - 3 = 1 | B1, B2, B3, B7, **B64**, B66, B68, B71 |
+| [1, 2, 3, 7, 64, 64, 64] | [66, 68, 71] | 3 - 3 = 0 | B1, B2, B3, B7, B66, B68, B71 (NO B64) |
+| [1, 2, 3, 7, 64] | [] | 1 - 0 = 1 | B1, B2, B3, B7, **B64** |
+| [1, 2, 3, 7] | [] | 0 - 0 = 0 | B1, B2, B3, B7 (no bands ≥64) |
+
+#### 6.8.4 Parsing Algorithm
+
+```python
+def parse_ue_capability_lte_bands(ue_cap_content):
+    """
+    Parse LTE bands from UE Capability Information.
+    Handles both supportedBandListEUTRA and v9e0 extension.
+    """
+    lte_bands = set()
+
+    # Step 1: Extract bands from supportedBandListEUTRA
+    base_bands = extract_supported_band_list_eutra(ue_cap_content)
+    count_64_in_base = base_bands.count(64)
+
+    # Add all bands except "64" placeholders
+    for band in base_bands:
+        if band != 64:
+            lte_bands.add(band)
+
+    # Step 2: Extract bands from supportedBandListEUTRA-v9e0 (if present)
+    v9e0_bands = extract_supported_band_list_eutra_v9e0(ue_cap_content)
+
+    # Add v9e0 bands (these are bands 65+)
+    for band in v9e0_bands:
+        lte_bands.add(band)
+
+    # Step 3: Determine actual B64 support
+    actual_b64_count = count_64_in_base - len(v9e0_bands)
+    if actual_b64_count > 0:
+        lte_bands.add(64)
+
+    return sorted(lte_bands)
+```
+
+#### 6.8.5 Example UE Capability Parsing
+
+**Input (UE Capability Information):**
+```
+supportedBandListEUTRA
+  bandEUTRA: 1
+  bandEUTRA: 2
+  bandEUTRA: 3
+  bandEUTRA: 7
+  bandEUTRA: 64
+  bandEUTRA: 64
+  bandEUTRA: 64
+  bandEUTRA: 64
+
+supportedBandListEUTRA-v9e0
+  bandEUTRA-v9e0: 66
+  bandEUTRA-v9e0: 68
+  bandEUTRA-v9e0: 71
+```
+
+**Parsing Steps:**
+1. Base bands: [1, 2, 3, 7, 64, 64, 64, 64] → Count of "64" = 4
+2. v9e0 bands: [66, 68, 71] → Count = 3
+3. Actual B64 support: 4 - 3 = 1 (YES, B64 is supported)
+4. **Final LTE bands: [1, 2, 3, 7, 64, 66, 68, 71]**
+
+#### 6.8.6 NR Bands Extended Parsing
+
+Similar logic applies to NR bands for bands beyond the base range:
+- `supportedBandListNR`: Base NR bands
+- `supportedBandListNR-v15xy`: Extensions for additional NR bands
+
+**Note**: NR band extensions follow a similar pattern but the specific IE names may vary based on 3GPP release. Refer to 3GPP TS 38.331 for NR-specific extensions.
+
+#### 6.8.7 Implementation Requirements
+
+| Requirement | Description |
+|-------------|-------------|
+| **Parse v9e0 IE** | UE Capability parser MUST extract supportedBandListEUTRA-v9e0 when present |
+| **Count B64 entries** | Count occurrences of "64" in base IE separately |
+| **Apply formula** | Use (base B64 count) - (v9e0 count) to determine actual B64 support |
+| **Handle missing v9e0** | If v9e0 IE is absent, treat all "64" entries as actual Band 64 |
+| **Validate consistency** | v9e0 count should not exceed B64 placeholder count |
+
 ---
 
 ## 7. Stage 2: Claude CLI Review
@@ -1349,6 +1570,6 @@ Band_Combos_Analyzer/
 
 ---
 
-*Document Version: 2.6*
-*Last Updated: Added 3-stage architecture with integrated HTML report (Sections 3.1, 3.4, 8.2, 10.1)*
+*Document Version: 2.7*
+*Last Updated: Added band indexing rules (Section 6.7) and UE Capability extended band parsing for bands 64+ (Section 6.8)*
 *Status: IMPLEMENTATION IN PROGRESS*

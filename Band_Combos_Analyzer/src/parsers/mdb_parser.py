@@ -2,8 +2,11 @@
 MDB (Mobile Database) Parser
 Parses mcc2bands.xml to extract allowed bands per MCC (country code).
 
-Note: MDB uses 0-indexed bands for LTE (0=B1, 2=B3, 6=B7)
-      NR bands appear to be actual band numbers (1-indexed)
+Note: MDB uses 0-indexed bands for ALL band types:
+      - LTE: 0=B1, 1=B2, 6=B7, etc.
+      - NR NSA: 0=n1, 1=n2, 77=n78, etc.
+      - NR SA: 0=n1, 1=n2, 77=n78, etc.
+      All band numbers are converted to 1-indexed (actual band numbers) during parsing.
 """
 
 import xml.etree.ElementTree as ET
@@ -48,10 +51,10 @@ def parse_band_list(text: str) -> Set[int]:
     return result
 
 
-def convert_lte_0indexed_to_bands(indices: Set[int]) -> Set[int]:
+def convert_0indexed_to_bands(indices: Set[int]) -> Set[int]:
     """
-    Convert 0-indexed LTE band positions to actual band numbers.
-    MDB uses: 0=B1, 1=B2, 2=B3, etc.
+    Convert 0-indexed band positions to actual band numbers.
+    MDB uses 0-indexed for ALL band types: 0=Band 1, 1=Band 2, etc.
 
     Args:
         indices: Set of 0-indexed positions from MDB
@@ -60,6 +63,10 @@ def convert_lte_0indexed_to_bands(indices: Set[int]) -> Set[int]:
         Set of actual band numbers (1-indexed)
     """
     return {idx + 1 for idx in indices}
+
+
+# Alias for backward compatibility
+convert_lte_0indexed_to_bands = convert_0indexed_to_bands
 
 
 def parse_mcc2bands_xml(file_path: str, target_mcc: Optional[str] = None) -> Optional[MDBBands]:
@@ -110,13 +117,15 @@ def parse_mcc2bands_xml(file_path: str, target_mcc: Optional[str] = None) -> Opt
         raw_values['n'] = n_elem.text.strip() if n_elem is not None and n_elem.text else ''
         raw_values['s'] = s_elem.text.strip() if s_elem is not None and s_elem.text else ''
 
-        # Parse band values
+        # Parse band values (raw 0-indexed)
         lte_indices = parse_band_list(raw_values['l'])
-        nr_nsa_bands = parse_band_list(raw_values['n'])
-        nr_sa_bands = parse_band_list(raw_values['s'])
+        nr_nsa_indices = parse_band_list(raw_values['n'])
+        nr_sa_indices = parse_band_list(raw_values['s'])
 
-        # Convert LTE from 0-indexed to 1-indexed
-        lte_bands = convert_lte_0indexed_to_bands(lte_indices)
+        # Convert ALL band types from 0-indexed to 1-indexed
+        lte_bands = convert_0indexed_to_bands(lte_indices)
+        nr_nsa_bands = convert_0indexed_to_bands(nr_nsa_indices)
+        nr_sa_bands = convert_0indexed_to_bands(nr_sa_indices)
 
         # Handle 'all' keyword
         lte_all = raw_values['l'].strip().lower() == 'all'
@@ -179,13 +188,19 @@ def get_all_mcc_entries(file_path: str) -> List[MDBBands]:
             raw_values[tag] = elem.text.strip() if elem is not None and elem.text else ''
 
         lte_indices = parse_band_list(raw_values['l'])
-        lte_bands = convert_lte_0indexed_to_bands(lte_indices) if raw_values['l'].lower() != 'all' else set()
+        nr_nsa_indices = parse_band_list(raw_values['n'])
+        nr_sa_indices = parse_band_list(raw_values['s'])
+
+        # Convert ALL band types from 0-indexed to 1-indexed
+        lte_bands = convert_0indexed_to_bands(lte_indices) if raw_values['l'].lower() != 'all' else set()
+        nr_nsa_bands = convert_0indexed_to_bands(nr_nsa_indices) if raw_values['n'].lower() != 'all' else set()
+        nr_sa_bands = convert_0indexed_to_bands(nr_sa_indices) if raw_values['s'].lower() != 'all' else set()
 
         entries.append(MDBBands(
             mcc_list=mcc_list,
             lte_bands=lte_bands,
-            nr_nsa_bands=parse_band_list(raw_values['n']) if raw_values['n'].lower() != 'all' else set(),
-            nr_sa_bands=parse_band_list(raw_values['s']) if raw_values['s'].lower() != 'all' else set(),
+            nr_nsa_bands=nr_nsa_bands,
+            nr_sa_bands=nr_sa_bands,
             cdma_bands=raw_values['c'],
             gsm_bands=raw_values['g'],
             tds_bands=raw_values['t'],
@@ -226,11 +241,11 @@ if __name__ == "__main__":
             print(f"MCCs: {' '.join(result.mcc_list)}")
             print(f"Is Default Entry: {result.is_default}")
 
-            print(f"\nRaw Values:")
+            print(f"\nRaw Values (0-indexed):")
             for key, value in result.raw_values.items():
                 print(f"  <{key}>: {value if value else '(empty)'}")
 
-            print(f"\nParsed Bands (LTE converted from 0-indexed):")
+            print(f"\nParsed Bands (ALL converted from 0-indexed to 1-indexed):")
             if result.raw_values['l'].lower() == 'all':
                 print(f"  LTE: ALL")
             else:
