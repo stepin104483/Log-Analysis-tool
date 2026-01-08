@@ -154,6 +154,88 @@ def extract_lte_bands_with_v9e0(content: str) -> Tuple[Set[int], List[int], List
     return final_bands, base_bands_list, v9e0_bands_list
 
 
+def extract_supported_band_list_nr(content: str) -> Set[int]:
+    """
+    Extract NR bands from rf-Parameters.supportedBandListNR structure only.
+
+    This function specifically targets the supportedBandListNR within rf-Parameters
+    to avoid picking up bands from band combinations and other structures.
+
+    The structure looks like:
+        rf-Parameters {
+            supportedBandListNR {
+                { bandNR 77, ... },
+                { bandNR 5, ... },
+                ...
+            }
+        }
+
+    Args:
+        content: UE Capability text content
+
+    Returns:
+        Set of NR band numbers from supportedBandListNR
+    """
+    nr_bands: Set[int] = set()
+
+    # Find rf-Parameters section
+    rf_params_match = re.search(r'rf-Parameters\s*\{', content)
+    if not rf_params_match:
+        # Fallback: extract all bandNR entries if rf-Parameters not found
+        individual_nr = re.findall(r'bandNR\s*[:=]?\s*(\d+)', content)
+        for band in individual_nr:
+            try:
+                nr_bands.add(int(band))
+            except ValueError:
+                pass
+        return nr_bands
+
+    rf_start = rf_params_match.end()
+
+    # Find supportedBandListNR within rf-Parameters
+    # Search from rf-Parameters start
+    supported_list_match = re.search(r'supportedBandListNR\s*\{', content[rf_start:])
+    if not supported_list_match:
+        return nr_bands
+
+    list_start = rf_start + supported_list_match.end()
+
+    # Find the end of supportedBandListNR by counting braces
+    # Each band entry is: { bandNR XX, ... }
+    # We need to find where the supportedBandListNR closes
+    brace_count = 1
+    pos = list_start
+    list_end = len(content)
+
+    while pos < len(content) and brace_count > 0:
+        char = content[pos]
+        if char == '{':
+            brace_count += 1
+        elif char == '}':
+            brace_count -= 1
+        pos += 1
+
+    list_end = pos
+
+    # Extract only the supportedBandListNR section
+    supported_list_content = content[list_start:list_end]
+
+    # Now extract bandNR entries from this section only
+    # Pattern: bandNR followed by number (first occurrence in each band block)
+    # We want direct children, not nested band combinations
+    band_matches = re.findall(r'\{\s*bandNR\s+(\d+)', supported_list_content)
+
+    for band in band_matches:
+        try:
+            band_num = int(band)
+            if 0 < band_num < 512:  # Valid NR band range
+                nr_bands.add(band_num)
+        except ValueError:
+            pass
+
+    return nr_bands
+
+
 def parse_ue_capability_json(content: str) -> Optional[Dict]:
     """Try to parse content as JSON"""
     try:
@@ -254,39 +336,21 @@ def parse_ue_capability(file_path: str) -> Optional[UECapabilityBands]:
             'actual_b64_support': count_64_in_base - len(v9e0_bands_list) > 0
         }
 
-        # Patterns for NR bands
-        nr_patterns = [
-            r'bandNR\s*[:=]\s*([^\n]+)',
-            r'supportedBandListNR\s*[:=]\s*([^\n]+)',
-            r'NR\s*[Bb]ands?\s*[:=]\s*([^\n]+)',
-            r'nr-?FreqBand\s*[:=]\s*([^\n]+)',
-        ]
+        # Extract NR bands from rf-Parameters.supportedBandListNR only
+        # This avoids picking up bands from band combinations and other structures
+        nr_bands = extract_supported_band_list_nr(content)
 
-        # NR SA specific
+        # NR SA specific patterns (fallback)
         nr_sa_patterns = [
             r'NR\s*SA\s*[Bb]ands?\s*[:=]\s*([^\n]+)',
             r'sa-?BandList\s*[:=]\s*([^\n]+)',
         ]
 
-        # NR NSA specific
+        # NR NSA specific patterns (fallback)
         nr_nsa_patterns = [
             r'NR\s*NSA\s*[Bb]ands?\s*[:=]\s*([^\n]+)',
             r'nsa-?BandList\s*[:=]\s*([^\n]+)',
         ]
-
-        # Extract NR bands (individual entries)
-        individual_nr = re.findall(r'bandNR\s*[:=]?\s*(\d+)', content)
-        for band in individual_nr:
-            try:
-                nr_bands.add(int(band))
-            except ValueError:
-                pass
-
-        # Also try pattern-based extraction for NR
-        for pattern in nr_patterns:
-            matches = re.findall(pattern, content, re.IGNORECASE)
-            for match in matches:
-                nr_bands.update(parse_band_list_text(match))
 
         # Extract NR SA specific
         for pattern in nr_sa_patterns:
