@@ -202,7 +202,9 @@ class BandAnalyzer:
             if ue_data:
                 self.tracer.set_ue_cap_bands(
                     ue_data.lte_bands,
-                    ue_data.nr_bands
+                    ue_data.nr_bands,
+                    nr_sa=ue_data.nr_sa_bands,    # From supportedBandListNR-SA-r15
+                    nr_nsa=ue_data.nr_nsa_bands   # From supportedBandListEN-DC-r15
                 )
             else:
                 self.errors.append(f"Failed to parse UE Capability: {inputs.ue_capability_path}")

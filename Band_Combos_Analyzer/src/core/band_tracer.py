@@ -122,7 +122,9 @@ class BandTracer:
         self.qxdm_nr_nsa: Set[int] = set()
 
         self.ue_cap_lte: Set[int] = set()
-        self.ue_cap_nr: Set[int] = set()
+        self.ue_cap_nr: Set[int] = set()           # General NR bands (rf-Parameters)
+        self.ue_cap_nr_sa: Set[int] = set()        # NR SA bands (supportedBandListNR-SA-r15)
+        self.ue_cap_nr_nsa: Set[int] = set()       # NR NSA bands (supportedBandListEN-DC-r15)
 
         # Document status
         self.doc_status: Dict[str, DocumentStatus] = {
@@ -242,13 +244,33 @@ class BandTracer:
         self.doc_status['QXDM'].band_count = len(lte) + len(nr_sa)
         self.doc_status['QXDM'].details = f"{len(lte)} LTE, {len(nr_sa)} NR SA"
 
-    def set_ue_cap_bands(self, lte: Set[int], nr: Set[int]):
-        """Set UE Capability bands"""
+    def set_ue_cap_bands(self, lte: Set[int], nr: Set[int],
+                         nr_sa: Optional[Set[int]] = None, nr_nsa: Optional[Set[int]] = None):
+        """
+        Set UE Capability bands.
+
+        Args:
+            lte: LTE bands from UE Capability
+            nr: General NR bands (from rf-Parameters.supportedBandListNR)
+            nr_sa: NR SA bands (from supportedBandListNR-SA-r15)
+            nr_nsa: NR NSA bands (from supportedBandListEN-DC-r15)
+        """
         self.ue_cap_lte = lte
         self.ue_cap_nr = nr
+        self.ue_cap_nr_sa = nr_sa if nr_sa is not None else set()
+        self.ue_cap_nr_nsa = nr_nsa if nr_nsa is not None else set()
         self.doc_status['UE_Cap'].loaded = True
         self.doc_status['UE_Cap'].band_count = len(lte) + len(nr)
-        self.doc_status['UE_Cap'].details = f"{len(lte)} LTE, {len(nr)} NR"
+
+        # Build details string
+        details = f"{len(lte)} LTE"
+        if nr_sa:
+            details += f", {len(nr_sa)} NR SA"
+        if nr_nsa:
+            details += f", {len(nr_nsa)} NR NSA"
+        if not nr_sa and not nr_nsa and nr:
+            details += f", {len(nr)} NR"
+        self.doc_status['UE_Cap'].details = details
 
     def trace_lte_band(self, band: int) -> BandTraceResult:
         """Trace a single LTE band through all stages"""
@@ -442,10 +464,16 @@ class BandTracer:
                 result.stages['QXDM'] = BandStatus.FAIL
 
         # Stage 7: UE Capability
+        # Use mode-specific UE capability bands (SA vs NSA/ENDC)
+        ue_cap_bands = self.ue_cap_nr_sa if mode == 'SA' else self.ue_cap_nr_nsa
+
         if not self.doc_status['UE_Cap'].loaded:
             result.stages['UE_Cap'] = BandStatus.NA
+        elif not ue_cap_bands:
+            # No SA/NSA specific bands in UE Capability - mark as N/A
+            result.stages['UE_Cap'] = BandStatus.NA
         else:
-            if band in self.ue_cap_nr:
+            if band in ue_cap_bands:
                 result.stages['UE_Cap'] = BandStatus.PASS
             else:
                 result.stages['UE_Cap'] = BandStatus.FAIL
@@ -607,8 +635,9 @@ class BandTracer:
         all_lte = (self.rfc_lte | self.qxdm_lte | self.ue_cap_lte |
                    self.carrier_lte_excluded | self.generic_lte_excluded)
         all_nr = (self.rfc_nr | self.qxdm_nr_sa | self.qxdm_nr_nsa |
-                  self.ue_cap_nr | self.carrier_nr_sa_excluded |
-                  self.carrier_nr_nsa_excluded | self.generic_nr_excluded)
+                  self.ue_cap_nr | self.ue_cap_nr_sa | self.ue_cap_nr_nsa |
+                  self.carrier_nr_sa_excluded | self.carrier_nr_nsa_excluded |
+                  self.generic_nr_excluded)
         return all_lte, all_nr
 
     def trace_all_bands(self) -> Dict[str, List[BandTraceResult]]:
