@@ -2,7 +2,7 @@
                     BAND ANALYSIS - CLAUDE REVIEW REQUEST
 ================================================================================
 
-Generated: 2026-01-07 19:29:36
+Generated: 2026-01-09 15:35:33
 
 You are an expert in Qualcomm modem band configuration and RF analysis.
 Review the following automated band analysis and provide your expert insights.
@@ -12,13 +12,14 @@ Review the following automated band analysis and provide your expert insights.
 SECTION 1: DOCUMENT STATUS
 --------------------------------------------------------------------------------
 
-[OK]      RFC XML                   - 28 LTE, 23 NR
+[OK]      RFC XML                   - 28 LTE, 23 NR (17 EN-DC), 4 GSM
 [OK]      HW Band Filtering         - Loaded
-[OK]      Carrier Policy            - Excl: 0 LTE, 0 NR
-[OK]      Generic Restrictions      - Excl: 2 LTE, 0 NR
+[OK]      Carrier Policy            - Excl: 0 LTE, 0 NR, 9 GW
+[OK]      Generic Restrictions      - Excl: 0 LTE, 0 NR
+[OK]      MCFG NV Band Pref         - Enabled: 26 LTE
 [OK]      MDB Config (Context)      - Context: 18 LTE, 11 NR
-[OK]      QXDM Log                  - 25 LTE, 20 NR SA
-[OK]      UE Capability             - 22 LTE, 20 NR
+[OK]      QXDM Log                  - 27 LTE, 20 NR SA
+[OK]      UE Capability             - 27 LTE, 20 NR SA, 17 NR NSA
 
 --------------------------------------------------------------------------------
 SECTION 2: AUTOMATED ANALYSIS RESULTS
@@ -33,8 +34,7 @@ B2     PASS   PASS   PASS     PASS     PASS   PASS    ENABLED         -
 B3     PASS   PASS   PASS     PASS     PASS   PASS    ENABLED         -
 B4     PASS   PASS   PASS     PASS     PASS   PASS    ENABLED         -
 B5     PASS   PASS   PASS     PASS     PASS   PASS    ENABLED         -
-B6     FAIL   SKIP   SKIP     SKIP     FAIL   FAIL    NOT_SUPPORTED   RFC
-B7     PASS   PASS   PASS     PASS     FAIL   FAIL    MISSING_IN_PM   -
+B7     PASS   PASS   PASS     PASS     PASS   PASS    ENABLED         -
 B8     PASS   PASS   PASS     PASS     PASS   PASS    ENABLED         -
 B12    PASS   PASS   PASS     PASS     PASS   PASS    ENABLED         -
 B13    PASS   PASS   PASS     PASS     PASS   PASS    ENABLED         -
@@ -45,20 +45,18 @@ B26    PASS   PASS   PASS     PASS     PASS   PASS    ENABLED         -
 B28    PASS   PASS   PASS     PASS     PASS   PASS    ENABLED         -
 B29    PASS   PASS   PASS     PASS     PASS   PASS    ENABLED         -
 B30    PASS   PASS   PASS     PASS     PASS   PASS    ENABLED         -
-B32    PASS   PASS   PASS     PASS     PASS   FAIL    MISSING_IN_UE   -
-B37    FAIL   SKIP   SKIP     SKIP     FAIL   FAIL    NOT_SUPPORTED   RFC
-B38    PASS   PASS   PASS     PASS     FAIL   FAIL    MISSING_IN_PM   -
+B32    PASS   PASS   PASS     PASS     PASS   PASS    ENABLED         -
+B38    PASS   PASS   PASS     PASS     PASS   PASS    ENABLED         -
 B39    PASS   PASS   PASS     PASS     PASS   PASS    ENABLED         -
 B40    PASS   PASS   PASS     PASS     PASS   PASS    ENABLED         -
 B41    PASS   PASS   PASS     PASS     PASS   PASS    ENABLED         -
 B42    PASS   PASS   PASS     PASS     PASS   PASS    ENABLED         -
 B43    PASS   PASS   PASS     PASS     PASS   PASS    ENABLED         -
-B46    PASS   PASS   PASS     PASS     FAIL   FAIL    MISSING_IN_PM   -
+B46    PASS   PASS   PASS     PASS     FAIL   FAIL    FILTERED        NV_Pref
 B48    PASS   PASS   PASS     PASS     PASS   PASS    ENABLED         -
-B64    FAIL   SKIP   SKIP     SKIP     FAIL   PASS    ANOMALY         RFC
-B66    PASS   PASS   PASS     PASS     PASS   FAIL    MISSING_IN_UE   -
-B68    PASS   PASS   PASS     PASS     PASS   FAIL    MISSING_IN_UE   -
-B71    PASS   PASS   PASS     PASS     PASS   FAIL    MISSING_IN_UE   -
+B66    PASS   PASS   PASS     PASS     PASS   PASS    ENABLED         -
+B68    PASS   PASS   PASS     PASS     PASS   PASS    ENABLED         -
+B71    PASS   PASS   PASS     PASS     PASS   PASS    ENABLED         -
 ---------------------------------------------------------------------------------
 
 NR SA BAND TRACING:
@@ -100,19 +98,19 @@ n3     PASS   PASS   PASS     PASS     PASS   PASS    ENABLED         -
 n5     PASS   PASS   PASS     PASS     PASS   PASS    ENABLED         -
 n7     PASS   PASS   PASS     PASS     PASS   PASS    ENABLED         -
 n8     PASS   PASS   PASS     PASS     PASS   PASS    ENABLED         -
-n12    PASS   FAIL   SKIP     SKIP     FAIL   FAIL    FILTERED        HW_Filter
-n14    PASS   FAIL   SKIP     SKIP     FAIL   FAIL    FILTERED        HW_Filter
+n12    FAIL   SKIP   SKIP     SKIP     FAIL   FAIL    NOT_SUPPORTED   RFC
+n14    FAIL   SKIP   SKIP     SKIP     FAIL   FAIL    NOT_SUPPORTED   RFC
 n20    PASS   PASS   PASS     PASS     PASS   PASS    ENABLED         -
-n25    PASS   PASS   PASS     PASS     FAIL   PASS    MISSING_IN_PM   -
+n25    FAIL   SKIP   SKIP     SKIP     FAIL   FAIL    NOT_SUPPORTED   RFC
 n26    PASS   PASS   PASS     PASS     PASS   PASS    ENABLED         -
 n28    PASS   PASS   PASS     PASS     PASS   PASS    ENABLED         -
-n30    PASS   FAIL   SKIP     SKIP     FAIL   FAIL    FILTERED        HW_Filter
+n30    FAIL   SKIP   SKIP     SKIP     FAIL   FAIL    NOT_SUPPORTED   RFC
 n38    PASS   PASS   PASS     PASS     PASS   PASS    ENABLED         -
 n40    PASS   PASS   PASS     PASS     PASS   PASS    ENABLED         -
 n41    PASS   PASS   PASS     PASS     PASS   PASS    ENABLED         -
-n48    PASS   FAIL   SKIP     SKIP     FAIL   PASS    FILTERED        HW_Filter
+n48    FAIL   SKIP   SKIP     SKIP     FAIL   FAIL    NOT_SUPPORTED   RFC
 n66    PASS   PASS   PASS     PASS     PASS   PASS    ENABLED         -
-n70    PASS   FAIL   SKIP     SKIP     FAIL   PASS    FILTERED        HW_Filter
+n70    FAIL   SKIP   SKIP     SKIP     FAIL   FAIL    NOT_SUPPORTED   RFC
 n71    PASS   PASS   PASS     PASS     PASS   PASS    ENABLED         -
 n75    PASS   PASS   PASS     PASS     PASS   PASS    ENABLED         -
 n77    PASS   PASS   PASS     PASS     PASS   PASS    ENABLED         -
@@ -123,23 +121,15 @@ n78    PASS   PASS   PASS     PASS     PASS   PASS    ENABLED         -
 SECTION 3: DETECTED ANOMALIES
 --------------------------------------------------------------------------------
 
-1. B7 (LTE): Passed all config stages but missing in QXDM
-2. B32 (LTE): Present in QXDM but missing in UE Capability
-3. B38 (LTE): Passed all config stages but missing in QXDM
-4. B46 (LTE): Passed all config stages but missing in QXDM
-5. B64 (LTE): Present in device logs but NOT in RFC
-6. B66 (LTE): Present in QXDM but missing in UE Capability
-7. B68 (LTE): Present in QXDM but missing in UE Capability
-8. B71 (LTE): Present in QXDM but missing in UE Capability
-9. n25 (NR_NSA): Passed all config stages but missing in QXDM
+No anomalies detected.
 
 --------------------------------------------------------------------------------
 SECTION 4: SUMMARY STATISTICS
 --------------------------------------------------------------------------------
 
-LTE Bands:    Total:  31  |  Enabled:  21  |  Filtered:   0  |  Anomalies: 8
+LTE Bands:    Total:  28  |  Enabled:  27  |  Filtered:   1  |  Anomalies: 0
 NR SA Bands:  Total:  23  |  Enabled:  20  |  Filtered:   3  |  Anomalies: 0
-NR NSA Bands: Total:  23  |  Enabled:  17  |  Filtered:   5  |  Anomalies: 1
+NR NSA Bands: Total:  23  |  Enabled:  17  |  Filtered:   0  |  Anomalies: 0
 
 --------------------------------------------------------------------------------
 SECTION 5: MDB CONTEXT (Location-Based Band Information)
@@ -152,7 +142,7 @@ location (MCC) at runtime - QXDM logs already reflect MDB filtering applied.
 Target MCC: Context: 18 LTE, 11 NR
 
 MDB Allowed LTE Bands (18): B2, B4, B5, B7, B12, B13, B14, B17, B25, B26, B29, B30, B38, B41, B46, B48, B66, B71
-MDB Allowed NR Bands (14): n1, n4, n24, n25, n28, n40, n47, n65, n69, n70, n76, n257, n259, n260
+MDB Allowed NR Bands (14): n2, n5, n25, n26, n29, n41, n48, n66, n70, n71, n77, n258, n260, n261
 
 Consider: If a band passes all config stages but is missing from QXDM,
 check if it's excluded by MDB for this location.

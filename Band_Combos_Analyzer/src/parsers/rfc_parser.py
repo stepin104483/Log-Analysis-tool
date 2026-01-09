@@ -12,7 +12,8 @@ from dataclasses import dataclass
 class RFCBands:
     """Container for bands extracted from RFC"""
     lte_bands: Set[int]
-    nr_bands: Set[int]
+    nr_bands: Set[int]  # All NR bands (for SA)
+    nr_nsa_bands: Set[int]  # NR bands from ca_4g_5g_combos (for NSA/EN-DC)
     gsm_bands: Set[str]
     file_info: Dict[str, str]
 
@@ -49,6 +50,45 @@ def parse_band_name(band_name: str) -> tuple:
     return ('UNKNOWN', band_name)
 
 
+import re
+
+
+def extract_nr_bands_from_endc_combos(root: ET.Element) -> Set[int]:
+    """
+    Extract NR bands from <ca_4g_5g_combos> section (EN-DC combos).
+
+    These combos define which NR bands can be used for NSA/EN-DC operation.
+    Combo format examples:
+        B1A[4];A[1]+N7A[40x4];A[40x1]
+        B66A[4];A[1]+B66A[4]+N77A[100x4];A[100x1]
+
+    Args:
+        root: XML root element
+
+    Returns:
+        Set of NR band numbers found in EN-DC combos
+    """
+    nr_nsa_bands: Set[int] = set()
+
+    # Find ca_4g_5g_combos section
+    for combos_elem in root.iter('ca_4g_5g_combos'):
+        for combo_elem in combos_elem.iter('ca_combo'):
+            if combo_elem.text:
+                combo_text = combo_elem.text.strip()
+                # Extract NR bands using regex pattern N followed by digits
+                # Pattern matches: N1, N77, N78, etc. in combo strings
+                nr_matches = re.findall(r'N(\d+)', combo_text, re.IGNORECASE)
+                for match in nr_matches:
+                    try:
+                        band_num = int(match)
+                        if 0 < band_num < 512:  # Valid NR band range
+                            nr_nsa_bands.add(band_num)
+                    except ValueError:
+                        pass
+
+    return nr_nsa_bands
+
+
 def parse_rfc_xml(file_path: str) -> Optional[RFCBands]:
     """
     Parse RFC XML file and extract all bands.
@@ -71,6 +111,7 @@ def parse_rfc_xml(file_path: str) -> Optional[RFCBands]:
 
     lte_bands: Set[int] = set()
     nr_bands: Set[int] = set()
+    nr_nsa_bands: Set[int] = set()
     gsm_bands: Set[str] = set()
 
     # Extract file info
@@ -111,9 +152,13 @@ def parse_rfc_xml(file_path: str) -> Optional[RFCBands]:
             elif band_type == 'GSM':
                 gsm_bands.add(band_value)
 
+    # Extract NR bands from EN-DC combos (for NSA operation)
+    nr_nsa_bands = extract_nr_bands_from_endc_combos(root)
+
     return RFCBands(
         lte_bands=lte_bands,
         nr_bands=nr_bands,
+        nr_nsa_bands=nr_nsa_bands,
         gsm_bands=gsm_bands,
         file_info=file_info
     )
@@ -138,7 +183,13 @@ if __name__ == "__main__":
             print(f"File: {result.file_info.get('name', 'Unknown')}")
             print(f"HWID: {result.file_info.get('hwid', 'Unknown')}")
             print(f"\nLTE Bands ({len(result.lte_bands)}): {format_bands_for_display(result.lte_bands, 'B')}")
-            print(f"NR Bands ({len(result.nr_bands)}): {format_bands_for_display(result.nr_bands, 'n')}")
+            print(f"NR Bands - SA ({len(result.nr_bands)}): {format_bands_for_display(result.nr_bands, 'n')}")
+            print(f"NR Bands - NSA/EN-DC ({len(result.nr_nsa_bands)}): {format_bands_for_display(result.nr_nsa_bands, 'n')}")
             print(f"GSM Bands ({len(result.gsm_bands)}): {', '.join(sorted(result.gsm_bands)) if result.gsm_bands else 'None'}")
+
+            # Show SA-only bands
+            sa_only = result.nr_bands - result.nr_nsa_bands
+            if sa_only:
+                print(f"\nNR SA-Only Bands: {format_bands_for_display(sa_only, 'n')}")
     else:
         print("Usage: python rfc_parser.py <rfc_xml_file>")

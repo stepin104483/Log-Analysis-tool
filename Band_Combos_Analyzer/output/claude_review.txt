@@ -2,190 +2,128 @@
 
 ## Executive Summary
 
-This configuration shows a generally healthy band setup with several notable anomalies requiring attention. I'll analyze each finding systematically.
+This configuration analysis shows a **well-configured modem** with expected filtering behavior. All detected filtering is **intentional and traceable** - there are no anomalies requiring investigation.
 
 ---
 
 ## 1. Validation of Automated Findings
 
-The automated PASS/FAIL determinations are **largely correct** with the pipeline logic working as expected:
+### LTE Band Tracing: ✓ CORRECT
 
-- **RFC → HW → Carrier → Generic → QXDM → UE_Cap** filtering cascade is properly implemented
-- Bands failing at RFC correctly show SKIP for downstream stages
-- HW_Filter exclusions (n12, n14, n30 in NR) propagate correctly
+| Finding | Validation |
+|---------|------------|
+| B46 filtered at NV_Pref | **Correct** - LAA (Licensed Assisted Access) band B46 is disabled via MCFG NV band preference. This is a deliberate carrier/OEM decision, likely due to LAA not being deployed or certified for this configuration. |
+| 27/28 bands enabled | **Correct** - All other LTE bands pass through the complete pipeline. |
 
-**One concern**: The B64 anomaly detection is correct - this is a genuine configuration inconsistency that needs investigation.
+### NR SA Band Tracing: ✓ CORRECT
 
----
+| Finding | Validation |
+|---------|------------|
+| n12, n14, n30 filtered at HW_Filter | **Correct** - These bands are defined in RFC but excluded by hardware band filtering. This indicates the RF front-end hardware on this specific device variant doesn't support these bands (different SKU/region variant). |
+| 20/23 bands enabled | **Correct** - Expected behavior for this hardware variant. |
 
-## 2. Anomaly Analysis
+### NR NSA Band Tracing: ✓ CORRECT
 
-### Anomaly 1: B7 (LTE) - MISSING_IN_PM
-**Root Cause Assessment:**
-- B7 (2600 MHz FDD) passes all config stages but absent from QXDM logs
-- **Most likely cause**: MDB filtering - B7 is in MDB allowed list, so this is unexpected
-- **Alternative causes**: 
-  - Network not broadcasting B7 during log capture
-  - RF conditions preventing B7 acquisition
-  - PM (Policy Manager) runtime restriction not captured in static config
-
-**Impact**: Medium - B7 is a major capacity band in many regions
-**Action**: Verify QXDM log capture included B7-capable network; check PM NV items
+| Finding | Validation |
+|---------|------------|
+| n12, n14, n25, n30, n48, n70 NOT_SUPPORTED at RFC | **Correct** - These bands are not defined as EN-DC capable in the RFC XML. The RFC shows 17 EN-DC bands out of 23 total NR bands, and these 6 are SA-only. |
+| 17/23 bands enabled for NSA | **Correct** - Matches the RFC's 17 EN-DC band count exactly. |
 
 ---
 
-### Anomaly 2: B32 (LTE) - MISSING_IN_UE
-**Root Cause Assessment:**
-- B32 (1500 MHz SDL) present in QXDM but missing from UE Capability
-- **Most likely cause**: UE Capability message was captured before B32 was enabled, or intentional exclusion from capability reporting
-- B32 is SDL (Supplementary Downlink) only - some implementations don't advertise SDL bands in standalone UE-Cap
+## 2. Analysis of Filtered Bands (No Anomalies)
 
-**Impact**: Low - B32 is supplementary; device may still use it via CA
-**Action**: Verify if this is intentional SDL handling; check CA combinations include B32
+### B46 (LTE LAA) - Filtered at NV_Pref
 
----
+**Root Cause:** Intentional NV item configuration disabling LAA.
 
-### Anomaly 3: B38 (LTE) - MISSING_IN_PM
-**Root Cause Assessment:**
-- B38 (2600 MHz TDD) passes config but missing from QXDM
-- **Critical observation**: B38 IS in MDB allowed list but not in QXDM
-- **Likely causes**:
-  - No B38 network available during log capture
-  - TDD synchronization requirements not met
-  - Regional TDD configuration mismatch
+**Technical Context:** 
+- LAA operates in 5GHz unlicensed spectrum
+- Requires Listen-Before-Talk (LBT) and specific regulatory certification
+- Often disabled for carriers not deploying LAA or in regions with restrictions
 
-**Impact**: Medium - B38 is important TDD band for capacity
-**Action**: Confirm B38 network availability; verify TDD config parameters
+**Impact:** None - expected configuration choice.
 
----
+### n12, n14, n30 (NR SA) - Filtered at HW_Filter
 
-### Anomaly 4: B46 (LTE) - MISSING_IN_PM
-**Root Cause Assessment:**
-- B46 (LAA 5GHz) passes config but missing from QXDM
-- B46 IS in MDB allowed list
-- **Most likely cause**: LAA requires specific conditions:
-  - Listen-Before-Talk (LBT) regulatory compliance
-  - Only operates as SCell in CA configurations
-  - Requires anchor band to be active first
+**Root Cause:** Hardware SKU limitation - RF front-end doesn't include these band modules.
 
-**Impact**: Low - LAA is supplementary capacity only
-**Action**: Verify LAA is tested in CA scenario with appropriate anchor; check 5GHz regulatory settings
+**Technical Context:**
+- n12 (700 MHz), n14 (700 MHz FirstNet), n30 (2300 MHz) require specific PA/LNA/filter components
+- Different device variants ship with different RF configurations
+- RFC defines the superset; HW filter narrows to actual hardware capability
 
----
+**Impact:** None - hardware correctly reports its capabilities.
 
-### Anomaly 5: B64 (LTE) - ANOMALY (Critical)
-**Root Cause Assessment:**
-- **This is the most concerning finding**
-- B64 appears in UE Capability but NOT in RFC
-- B64 (not a standard 3GPP band) appearing in device logs suggests:
-  - Possible proprietary/custom band definition
-  - UE Capability parsing error
-  - Leftover test configuration
-  - Potential security concern if unexpected band support exists
+### n12, n14, n25, n30, n48, n70 (NR NSA) - Not in RFC EN-DC
 
-**Impact**: **HIGH** - Configuration integrity issue
-**Action**: 
-1. Immediately verify UE Capability source data
-2. Check if B64 is a custom band alias
-3. Confirm RFC XML is complete and current
-4. This should not ship without resolution
+**Root Cause:** These bands are configured for SA-only operation in the RFC.
+
+**Technical Context:**
+- EN-DC (EUTRA-NR Dual Connectivity) requires specific RF architecture support
+- Some bands may lack the simultaneous LTE+NR operation capability
+- n48 (CBRS) and n70 are commonly SA-only in many configurations
+- n25/n30 being SA-only is unusual but valid for specific implementations
+
+**Impact:** None - architectural decision in RF configuration.
 
 ---
 
-### Anomaly 6-8: B66, B68, B71 (LTE) - MISSING_IN_UE
-**Root Cause Assessment:**
-- All three bands: present in QXDM but missing from UE Capability
-- **B66**: Extended AWS band - common in North America
-- **B68**: 700 MHz APT - common in Europe/APAC  
-- **B71**: 600 MHz - US T-Mobile primary band
+## 3. MDB Context Analysis
 
-**Critical observation for B71**: 
-- B71 IS in MDB allowed list (US deployment target)
-- Missing from UE-Cap means network won't schedule device on B71
-- **This is likely a significant issue for US deployment**
+The MDB shows US market targeting (based on band mix):
 
-**Impact**: **HIGH for B71** (primary coverage band), Medium for B66/B68
-**Action**: 
-- Verify UE Capability encoding includes these bands
-- Check if feature flags for these bands are enabled in NV
-- B71 absence will severely impact US coverage
+**Observations:**
+- MDB allows B46 (LAA) but NV_Pref disables it → Intentional override
+- MDB includes n258, n260, n261 (mmWave) but RFC doesn't define them → Device is sub-6GHz only
+- MDB NR list (14 bands) vs RFC NR list (23 bands) → MDB is location-filtered subset
+
+**Cross-Check:** QXDM logs showing 27 LTE and 20 NR SA bands correctly reflect the post-MDB runtime state for this location.
 
 ---
 
-### Anomaly 9: n25 (NR NSA) - MISSING_IN_PM
-**Root Cause Assessment:**
-- n25 (1900 MHz NR) passes config but missing from NSA QXDM logs
-- Interesting: n25 IS in MDB NR allowed list
-- **Note**: n25 NSA requires LTE anchor (typically B2/B25/B66)
+## 4. Impact Assessment
 
-**Impact**: Medium - affects NSA NR coverage in PCS band regions
-**Action**: Verify NSA anchor band availability during log capture; check EN-DC combinations
-
----
-
-## 3. Impact Assessment Matrix
-
-| Anomaly | Severity | Deployment Risk | Priority |
-|---------|----------|-----------------|----------|
-| B64 | Critical | Blocks deployment | P0 |
-| B71 missing UE-Cap | High | Major US coverage gap | P1 |
-| B66 missing UE-Cap | High | AWS coverage impact | P1 |
-| B7 missing PM | Medium | Capacity reduction | P2 |
-| B38 missing PM | Medium | TDD capacity impact | P2 |
-| B68 missing UE-Cap | Medium | EU/APAC impact | P2 |
-| n25 NSA missing | Medium | NR coverage gap | P2 |
-| B32 missing UE-Cap | Low | SDL supplementary | P3 |
-| B46 missing PM | Low | LAA supplementary | P3 |
+| Category | Status | Notes |
+|----------|--------|-------|
+| Critical Issues | **None** | No unexpected filtering |
+| Configuration Errors | **None** | All filtering is traceable |
+| Missing Bands | **None** | All expected bands are enabled |
+| Excess Bands | **None** | No bands enabled that shouldn't be |
 
 ---
 
-## 4. Recommended Actions
+## 5. Recommended Actions
 
-### Immediate (Before Deployment):
+**No corrective actions required.**
 
-1. **Investigate B64 anomaly** - This is a blocking issue. Determine why a band appears in UE-Cap without RFC support.
+Optional considerations for product team:
 
-2. **Fix UE Capability encoding for B66, B68, B71** - These bands passing all config stages but missing from UE-Cap indicates a capability encoding bug. Check:
-   - `ue_cap_rat_container` NV items
-   - Feature enable flags in EFS
-   - UE Capability generator tool version
+1. **B46 (LAA):** If LAA deployment is planned, verify NV item configuration matches carrier requirements.
 
-3. **Verify MDB vs QXDM alignment** - Several MDB-allowed bands (B7, B38, B46) don't appear in QXDM. Determine if this is:
-   - Log capture environment limitation
-   - Actual PM filtering issue
+2. **n25 NSA:** Unusual to have n25 SA-only without NSA. If Sprint/T-Mobile deployment needs n25 EN-DC, verify this is intentional.
 
-### Secondary:
-
-4. Re-run QXDM capture in environment with all target bands available
-5. Verify NSA EN-DC combination tables include n25 anchors
-6. Document B32/B46 SDL/LAA behavior as expected if confirmed intentional
+3. **mmWave:** If mmWave capability is needed, this configuration/hardware doesn't support it.
 
 ---
 
-## 5. Overall Verdict
+## 6. Overall Verdict
 
-### ❌ NOT SAFE FOR DEPLOYMENT
+### ✅ SAFE FOR DEPLOYMENT
 
-**Blocking Issues:**
-1. **B64 anomaly** must be explained - potential configuration corruption or unexpected band support
-2. **B71 missing from UE Capability** will cause significant US coverage issues
-3. **B66 missing from UE Capability** will impact AWS band coverage
+**Confidence: HIGH**
 
-**Recommendation:** 
-- Hold deployment pending resolution of B64 investigation
-- Fix UE Capability encoding for B66/B68/B71
-- Re-validate with fresh QXDM capture after fixes
-- Target configuration is viable once these issues are resolved
+**Rationale:**
+- Zero anomalies detected
+- All filtering is intentional and properly traced
+- UE Capability matches QXDM runtime state
+- RFC → HW → Carrier → Generic → NV → QXDM pipeline is functioning correctly
+- Band counts are internally consistent across all stages
+
+**Configuration Quality Score: 10/10**
+
+This is a clean configuration with proper band filtering at each stage. The automated analysis correctly identified all filtering points, and manual review confirms no hidden issues.
 
 ---
 
-## Additional Observations
-
-**Positive findings:**
-- NR SA band configuration looks clean (only expected HW filter exclusions)
-- Core LTE bands (B1-B5, B12, B13, B20, B25, B26, B28, B41, B42, B43) all properly enabled
-- mmWave bands not in this config (expected for this hardware variant)
-
-**HW Filter exclusions (n12, n14, n30):**
-- These are expected for certain hardware SKUs
-- Verify this matches the target hardware variant specifications
+*Review completed by Claude (Qualcomm modem band configuration analysis)*

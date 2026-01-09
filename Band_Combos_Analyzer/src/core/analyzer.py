@@ -100,7 +100,8 @@ class BandAnalyzer:
                 self.tracer.set_rfc_bands(
                     rfc_data.lte_bands,
                     rfc_data.nr_bands,
-                    rfc_data.gsm_bands  # Include GSM bands
+                    rfc_data.gsm_bands,  # Include GSM bands
+                    rfc_data.nr_nsa_bands  # NR bands from ca_4g_5g_combos for NSA/EN-DC
                 )
             else:
                 self.errors.append(f"Failed to parse RFC: {inputs.rfc_path}")

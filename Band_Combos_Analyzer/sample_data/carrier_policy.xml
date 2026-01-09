@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<carrier_policy name="Test_Carrier" policy_ver="1.0">
+  <rf_band_list name="rf_bands_home">
+    <lte_bands base="current">
+      <exclude>4 12 13</exclude>
+    </lte_bands>
+    <nr5g_sa_bands base="current">
+      <exclude>2 28</exclude>
+    </nr5g_sa_bands>
+    <nr5g_nsa_bands base="current">
+      <exclude>71</exclude>
+    </nr5g_nsa_bands>
+  </rf_band_list>
+</carrier_policy>

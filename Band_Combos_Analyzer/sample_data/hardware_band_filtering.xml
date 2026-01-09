@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hardware_band_filtering>
+  <lte_bands>0-255</lte_bands>
+  <nr5g_sa_bands>0-511</nr5g_sa_bands>
+  <nr5g_nsa_bands>0-511</nr5g_nsa_bands>
+</hardware_band_filtering>

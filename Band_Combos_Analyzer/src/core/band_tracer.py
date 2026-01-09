@@ -88,7 +88,8 @@ class BandTracer:
 
         # LTE (4G) bands
         self.rfc_lte: Set[int] = set()
-        self.rfc_nr: Set[int] = set()
+        self.rfc_nr: Set[int] = set()  # All NR bands from RFC (for SA)
+        self.rfc_nr_nsa: Set[int] = set()  # NR bands from ca_4g_5g_combos (for NSA/EN-DC)
 
         self.hw_lte: Set[int] = set()
         self.hw_nr_sa: Set[int] = set()
@@ -139,16 +140,20 @@ class BandTracer:
         }
 
     def set_rfc_bands(self, lte_bands: Set[int], nr_bands: Set[int],
-                      gsm_bands: Optional[Set[str]] = None):
-        """Set RFC bands including optional GSM bands"""
+                      gsm_bands: Optional[Set[str]] = None,
+                      nr_nsa_bands: Optional[Set[int]] = None):
+        """Set RFC bands including optional GSM bands and NR NSA bands from EN-DC combos"""
         self.rfc_lte = lte_bands
-        self.rfc_nr = nr_bands
+        self.rfc_nr = nr_bands  # All NR bands (used for SA)
+        self.rfc_nr_nsa = nr_nsa_bands if nr_nsa_bands is not None else set()  # EN-DC combo bands (used for NSA)
         if gsm_bands:
             # Normalize GSM band names (strip 'B' prefix if present)
             self.rfc_gsm = {b.replace('B', '').replace('b', '') for b in gsm_bands}
         self.doc_status['RFC'].loaded = True
         self.doc_status['RFC'].band_count = len(lte_bands) + len(nr_bands)
         details = f"{len(lte_bands)} LTE, {len(nr_bands)} NR"
+        if nr_nsa_bands:
+            details += f" ({len(nr_nsa_bands)} EN-DC)"
         if gsm_bands:
             details += f", {len(gsm_bands)} GSM"
         self.doc_status['RFC'].details = details
@@ -389,8 +394,14 @@ class BandTracer:
         nv_present = self.nv_nr_sa_present if mode == 'SA' else self.nv_nr_nsa_present
 
         # Stage 1: RFC
+        # For SA: check all NR bands from RFC (rfc_nr)
+        # For NSA: check NR bands from ca_4g_5g_combos (rfc_nr_nsa)
         if self.doc_status['RFC'].loaded:
-            if band in self.rfc_nr:
+            rfc_bands = self.rfc_nr if mode == 'SA' else self.rfc_nr_nsa
+            # If no NSA bands defined in RFC, fall back to all NR bands for backward compatibility
+            if mode == 'NSA' and not self.rfc_nr_nsa:
+                rfc_bands = self.rfc_nr
+            if band in rfc_bands:
                 result.stages['RFC'] = BandStatus.PASS
             else:
                 result.stages['RFC'] = BandStatus.FAIL

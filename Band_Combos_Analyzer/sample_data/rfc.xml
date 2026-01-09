@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<nv>
+  <NvItemData id="1234">
+    <band_name>B1</band_name>
+  </NvItemData>
+  <NvItemData id="1235">
+    <band_name>B2</band_name>
+  </NvItemData>
+  <NvItemData id="1236">
+    <band_name>B3</band_name>
+  </NvItemData>
+  <NvItemData id="1237">
+    <band_name>B7</band_name>
+  </NvItemData>
+  <NvItemData id="1238">
+    <band_name>B20</band_name>
+  </NvItemData>
+  <NvItemData id="1239">
+    <band_name>n1</band_name>
+  </NvItemData>
+  <NvItemData id="1240">
+    <band_name>n5</band_name>
+  </NvItemData>
+  <NvItemData id="1241">
+    <band_name>n77</band_name>
+  </NvItemData>
+  <NvItemData id="1242">
+    <band_name>n78</band_name>
+  </NvItemData>
+</nv>

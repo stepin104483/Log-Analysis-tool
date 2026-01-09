@@ -1183,6 +1183,162 @@ B46    PASS   PASS   PASS     PASS     FAIL     FAIL   FAIL    FILTERED  NV_Pref
 
 ---
 
+### 6.10 RFC NR Band Sources (SA vs NSA/EN-DC)
+
+**Purpose:** Understand how the RFC XML file determines which NR bands are available for SA (Standalone) vs NSA (Non-Standalone/EN-DC) operation.
+
+#### 6.10.1 Key Insight
+
+The RFC XML file contains **two different sources** for NR band information:
+
+| Source | RFC Location | Purpose | Used For |
+|--------|--------------|---------|----------|
+| **All NR Bands** | `<band_name>N*</band_name>` elements | RF signal path definitions | **NR SA bands** |
+| **EN-DC Combos** | `<ca_4g_5g_combos>` section | LTE+NR carrier aggregation combos | **NR NSA bands** |
+
+#### 6.10.2 NR SA Bands Source
+
+NR SA (Standalone) bands are extracted from all `<band_name>` elements that start with "N" followed by a number:
+
+```xml
+<!-- RFC XML band definitions in signal paths -->
+<band_info>
+    <band_name>N1</band_name>
+    <band_name>N25</band_name>
+    <band_name>N77</band_name>
+    ...
+</band_info>
+```
+
+**Extraction Rule:** Any band matching pattern `N<number>` in RFC is an NR SA band.
+
+#### 6.10.3 NR NSA Bands Source
+
+NR NSA (Non-Standalone/EN-DC) bands are extracted from the `<ca_4g_5g_combos>` section, which defines valid LTE+NR carrier aggregation combinations:
+
+```xml
+<!-- RFC XML EN-DC (4G+5G) combo definitions -->
+<ca_4g_5g_combos>
+    <ca_combo>B1A[4];A[1]+N7A[40x4];A[40x1]</ca_combo>
+    <ca_combo>B66A[4];A[1]+B66A[4]+N77A[100x4];A[100x1]</ca_combo>
+    <ca_combo>B2A[4];A[1]+N78A[100x4];A[100x1]</ca_combo>
+    ...
+</ca_4g_5g_combos>
+```
+
+**Extraction Rule:** Extract NR band numbers from combo strings using pattern `N<number>` (e.g., N7, N77, N78).
+
+#### 6.10.4 Why the Difference Matters
+
+An NR band can be in the RFC as a supported signal path but **not** have any EN-DC (4G+5G) combos defined. This means:
+
+- **SA operation:** The band can work in standalone 5G mode
+- **NSA operation:** The band CANNOT work in EN-DC mode (requires LTE anchor)
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  RFC NR Band Sources                                            │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  RFC <band_name> elements     →   NR SA Bands (all NR bands)   │
+│    ├── N1, N2, N3, ...                                         │
+│    ├── N25, N48, N70        (may be SA-only if no EN-DC combo) │
+│    └── N77, N78, ...                                           │
+│                                                                 │
+│  RFC <ca_4g_5g_combos>        →   NR NSA Bands (EN-DC only)    │
+│    ├── B1+N7, B2+N78, ...      (LTE anchor + NR band)          │
+│    └── B66+N77, ...                                            │
+│                                                                 │
+│  Relationship:                                                  │
+│    NR SA Bands ⊇ NR NSA Bands  (SA superset of NSA)            │
+│    SA-Only = NR SA - NR NSA    (bands without EN-DC combos)    │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+#### 6.10.5 Real-World Example
+
+From RFC analysis:
+
+| NR SA Bands (23) | n1, n2, n3, n5, n7, n8, **n12**, **n14**, n20, **n25**, n26, n28, **n30**, n38, n40, n41, **n48**, n66, **n70**, n71, n75, n77, n78 |
+|------------------|-----------------------------------------------------------------------------------------------------------------------------------|
+| NR NSA Bands (17) | n1, n2, n3, n5, n7, n8, n20, n26, n28, n38, n40, n41, n66, n71, n75, n77, n78 |
+| **SA-Only Bands** | **n12, n14, n25, n30, n48, n70** (no EN-DC combos defined) |
+
+**Implication:** Bands like n25, n48, n70 will:
+- ✓ Appear in QXDM 0x1CCA NR SA bitmask (if not filtered elsewhere)
+- ✗ NOT appear in QXDM 0x1CCA NR NSA bitmask (no EN-DC combo support)
+- ✓ Appear in UE Capability `supportedBandListNR-SA-r15`
+- ✗ NOT appear in UE Capability `supportedBandListEN-DC-r15`
+
+#### 6.10.6 Relationship to UE Capability
+
+The RFC EN-DC combos directly correlate with UE Capability NR band lists:
+
+| RFC Source | UE Capability IE | Description |
+|------------|------------------|-------------|
+| All `<band_name>N*` | `supportedBandListNR-SA-r15` | NR bands for SA operation |
+| `<ca_4g_5g_combos>` NR bands | `supportedBandListEN-DC-r15` | NR bands for NSA/EN-DC operation |
+
+**Validation:** If an NR band is in `supportedBandListEN-DC-r15` but NOT in RFC `<ca_4g_5g_combos>`, this indicates:
+- Wrong RFC file being analyzed, OR
+- MBN/carrier override adding EN-DC combo support
+
+#### 6.10.7 Signal Paths vs EN-DC Combos
+
+**Important Distinction:** Do not confuse signal path definitions with EN-DC combos.
+
+```xml
+<!-- This is a SIGNAL PATH definition (NOT an EN-DC combo) -->
+<!-- Multiple bands share RF path due to similar frequencies -->
+<signal_path>
+    <band_name>B2</band_name>    <!-- LTE B2: 1930-1990 MHz -->
+    <band_name>B25</band_name>   <!-- LTE B25: 1930-1995 MHz -->
+    <band_name>N2</band_name>    <!-- NR n2: 1930-1990 MHz -->
+    <band_name>N25</band_name>   <!-- NR n25: 1930-1995 MHz -->
+</signal_path>
+
+<!-- This is an EN-DC COMBO definition (LTE + NR CA) -->
+<ca_4g_5g_combos>
+    <ca_combo>B2A[4]+N2A[100x4]</ca_combo>  <!-- n2 has EN-DC combo -->
+    <!-- Note: N25 may NOT appear here even though it shares signal path -->
+</ca_4g_5g_combos>
+```
+
+#### 6.10.8 Implementation in Band Tracer
+
+```python
+# RFC stage for NR NSA band tracing
+def trace_nr_band(self, band: int, mode: str = 'SA') -> BandTraceResult:
+    """
+    For NR SA:  Check if band is in RFC <band_name> elements
+    For NR NSA: Check if band is in RFC <ca_4g_5g_combos> section
+    """
+    if self.doc_status['RFC'].loaded:
+        if mode == 'SA':
+            # SA uses all NR bands from RFC
+            rfc_bands = self.rfc_nr
+        else:  # NSA
+            # NSA uses only bands from EN-DC combos
+            rfc_bands = self.rfc_nr_nsa
+
+        if band in rfc_bands:
+            result.stages['RFC'] = BandStatus.PASS
+        else:
+            result.stages['RFC'] = BandStatus.FAIL
+            result.filtered_at = 'RFC'
+```
+
+#### 6.10.9 Debugging Guide
+
+| Issue | Possible Cause | Investigation |
+|-------|---------------|---------------|
+| NR band shows SA but not NSA | No EN-DC combo in RFC | Check `<ca_4g_5g_combos>` for band |
+| NR NSA band unexpected | Band has EN-DC combo in RFC | Verify combo exists |
+| UE Cap NSA differs from RFC | MBN override or wrong RFC file | Compare RFC vs device's active RFC |
+
+---
+
 ## 7. Stage 2: Claude CLI Review
 
 ### 7.1 Purpose
@@ -2120,9 +2276,12 @@ Band_Combos_Analyzer/
 | 3.0 | 2026-01-09 | - | Document supportedBandListEN-DC-r15 for NR NSA bands |
 | 3.0 | 2026-01-09 | - | Document supportedBandListNR-SA-r15 for NR SA bands |
 | 3.0 | 2026-01-09 | - | Add 3GPP TS 36.331 ASN.1 definitions for IRAT-ParametersNR |
+| 3.1 | 2026-01-09 | - | Add RFC NR Band Sources (SA vs NSA/EN-DC) documentation (Section 6.10) |
+| 3.1 | 2026-01-09 | - | Document ca_4g_5g_combos as source for NR NSA bands in RFC |
+| 3.1 | 2026-01-09 | - | Clarify signal paths vs EN-DC combos in RFC parsing |
 
 ---
 
-*Document Version: 3.0*
-*Last Updated: 2026-01-09 - Added correct UE Capability NR SA/NSA parsing (supportedBandListEN-DC-r15, supportedBandListNR-SA-r15)*
+*Document Version: 3.1*
+*Last Updated: 2026-01-09 - Added RFC NR Band Sources (SA vs NSA) from ca_4g_5g_combos (Section 6.10)*
 *Status: IMPLEMENTATION IN PROGRESS*
