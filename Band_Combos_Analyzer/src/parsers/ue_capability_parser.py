@@ -7,11 +7,17 @@ Expected formats:
 2. Text format with bandEUTRA, bandNR lists
 3. ASN.1 decoded format
 
-Note: Handles 3GPP TS 36.331 Section 6.3.6 for LTE bands 64+:
+Note: Handles 3GPP TS 36.331 Section 6.3.6:
+      LTE Bands 64+:
       - supportedBandListEUTRA covers bands 1-64
       - supportedBandListEUTRA-v9e0 covers bands 65+ (B66, B68, B71, etc.)
       - "64" entries in base list can be placeholders for v9e0 bands
       - Formula: actual B64 count = (count of "64" in base) - (count in v9e0)
+
+      NR SA vs NSA (ENDC) Bands:
+      - supportedBandListEN-DC-r15: NR bands for EN-DC/NSA operation
+      - supportedBandListNR-SA-r15: NR bands for SA operation
+      - These are in irat-ParametersNR-r15 and irat-ParametersNR-v1540
 """
 
 import re
@@ -236,6 +242,109 @@ def extract_supported_band_list_nr(content: str) -> Set[int]:
     return nr_bands
 
 
+def extract_brace_section(content: str, start_pos: int) -> str:
+    """
+    Extract content within braces starting from start_pos.
+    Uses brace counting to find the matching closing brace.
+
+    Args:
+        content: Full text content
+        start_pos: Position right after the opening brace
+
+    Returns:
+        Content between braces (excluding the braces themselves)
+    """
+    brace_count = 1
+    pos = start_pos
+    end_pos = len(content)
+
+    while pos < len(content) and brace_count > 0:
+        char = content[pos]
+        if char == '{':
+            brace_count += 1
+        elif char == '}':
+            brace_count -= 1
+        pos += 1
+
+    return content[start_pos:pos - 1]  # Exclude the closing brace
+
+
+def extract_nr_nsa_bands_endc(content: str) -> Set[int]:
+    """
+    Extract NR NSA (ENDC) bands from supportedBandListEN-DC-r15.
+
+    Per 3GPP TS 36.331, this IE is located in:
+    irat-ParametersNR-r15 → supportedBandListEN-DC-r15
+
+    Args:
+        content: UE Capability text content
+
+    Returns:
+        Set of NR band numbers for NSA/ENDC operation
+    """
+    nr_nsa_bands: Set[int] = set()
+
+    # Find supportedBandListEN-DC-r15 section
+    endc_match = re.search(r'supportedBandListEN-DC-r15\s*\{', content)
+    if not endc_match:
+        return nr_nsa_bands
+
+    # Extract the section content using brace counting
+    section_content = extract_brace_section(content, endc_match.end())
+
+    # Extract bandNR-r15 entries from this section
+    # Pattern: { bandNR-r15 XX } or bandNR-r15 XX
+    bands = re.findall(r'bandNR-r15\s+(\d+)', section_content)
+
+    for band in bands:
+        try:
+            band_num = int(band)
+            if 0 < band_num < 512:  # Valid NR band range
+                nr_nsa_bands.add(band_num)
+        except ValueError:
+            pass
+
+    return nr_nsa_bands
+
+
+def extract_nr_sa_bands_r15(content: str) -> Set[int]:
+    """
+    Extract NR SA bands from supportedBandListNR-SA-r15.
+
+    Per 3GPP TS 36.331, this IE is located in:
+    irat-ParametersNR-v1540 → supportedBandListNR-SA-r15
+
+    Args:
+        content: UE Capability text content
+
+    Returns:
+        Set of NR band numbers for SA operation
+    """
+    nr_sa_bands: Set[int] = set()
+
+    # Find supportedBandListNR-SA-r15 section
+    sa_match = re.search(r'supportedBandListNR-SA-r15\s*\{', content)
+    if not sa_match:
+        return nr_sa_bands
+
+    # Extract the section content using brace counting
+    section_content = extract_brace_section(content, sa_match.end())
+
+    # Extract bandNR-r15 entries from this section
+    # Pattern: { bandNR-r15 XX } or bandNR-r15 XX
+    bands = re.findall(r'bandNR-r15\s+(\d+)', section_content)
+
+    for band in bands:
+        try:
+            band_num = int(band)
+            if 0 < band_num < 512:  # Valid NR band range
+                nr_sa_bands.add(band_num)
+        except ValueError:
+            pass
+
+    return nr_sa_bands
+
+
 def parse_ue_capability_json(content: str) -> Optional[Dict]:
     """Try to parse content as JSON"""
     try:
@@ -340,34 +449,25 @@ def parse_ue_capability(file_path: str) -> Optional[UECapabilityBands]:
         # This avoids picking up bands from band combinations and other structures
         nr_bands = extract_supported_band_list_nr(content)
 
-        # NR SA specific patterns (fallback)
-        nr_sa_patterns = [
-            r'NR\s*SA\s*[Bb]ands?\s*[:=]\s*([^\n]+)',
-            r'sa-?BandList\s*[:=]\s*([^\n]+)',
-        ]
+        # Extract NR SA bands from supportedBandListNR-SA-r15 (3GPP TS 36.331)
+        # Location: irat-ParametersNR-v1540 → supportedBandListNR-SA-r15
+        nr_sa_bands = extract_nr_sa_bands_r15(content)
 
-        # NR NSA specific patterns (fallback)
-        nr_nsa_patterns = [
-            r'NR\s*NSA\s*[Bb]ands?\s*[:=]\s*([^\n]+)',
-            r'nsa-?BandList\s*[:=]\s*([^\n]+)',
-        ]
+        # Extract NR NSA (ENDC) bands from supportedBandListEN-DC-r15 (3GPP TS 36.331)
+        # Location: irat-ParametersNR-r15 → supportedBandListEN-DC-r15
+        nr_nsa_bands = extract_nr_nsa_bands_endc(content)
 
-        # Extract NR SA specific
-        for pattern in nr_sa_patterns:
-            matches = re.findall(pattern, content, re.IGNORECASE)
-            for match in matches:
-                nr_sa_bands.update(parse_band_list_text(match))
+        # Store extraction info in raw_data
+        raw_data['nr_bands_info'] = {
+            'rf_params_nr_bands': sorted(nr_bands),
+            'sa_bands_from_r15': sorted(nr_sa_bands),
+            'nsa_bands_from_endc_r15': sorted(nr_nsa_bands),
+            'has_sa_ie': bool(nr_sa_bands),
+            'has_endc_ie': bool(nr_nsa_bands)
+        }
 
-        # Extract NR NSA specific
-        for pattern in nr_nsa_patterns:
-            matches = re.findall(pattern, content, re.IGNORECASE)
-            for match in matches:
-                nr_nsa_bands.update(parse_band_list_text(match))
-
-    # If no SA/NSA split, use combined NR bands
-    if not nr_sa_bands and not nr_nsa_bands:
-        nr_sa_bands = nr_bands.copy()
-        nr_nsa_bands = nr_bands.copy()
+    # NOTE: Do NOT copy bands between SA and NSA when IEs are missing.
+    # Empty set means the capability is not present in UE Capability.
 
     return UECapabilityBands(
         lte_bands=lte_bands,
@@ -397,12 +497,32 @@ if __name__ == "__main__":
 
             print(f"\nExtracted Bands:")
             print(f"  LTE ({len(result.lte_bands)}): {format_bands_display(result.lte_bands, 'B')}")
-            print(f"  NR ({len(result.nr_bands)}): {format_bands_display(result.nr_bands, 'n')}")
+            print(f"  NR (rf-Parameters) ({len(result.nr_bands)}): {format_bands_display(result.nr_bands, 'n')}")
 
-            if result.nr_sa_bands != result.nr_bands:
-                print(f"  NR SA ({len(result.nr_sa_bands)}): {format_bands_display(result.nr_sa_bands, 'n')}")
-            if result.nr_nsa_bands != result.nr_bands:
-                print(f"  NR NSA ({len(result.nr_nsa_bands)}): {format_bands_display(result.nr_nsa_bands, 'n')}")
+            # Show NR SA bands (from supportedBandListNR-SA-r15)
+            print(f"\nNR SA Bands (from supportedBandListNR-SA-r15):")
+            if result.nr_sa_bands:
+                print(f"  Count: {len(result.nr_sa_bands)}")
+                print(f"  Bands: {format_bands_display(result.nr_sa_bands, 'n')}")
+            else:
+                print(f"  Not present in UE Capability")
+
+            # Show NR NSA/ENDC bands (from supportedBandListEN-DC-r15)
+            print(f"\nNR NSA/ENDC Bands (from supportedBandListEN-DC-r15):")
+            if result.nr_nsa_bands:
+                print(f"  Count: {len(result.nr_nsa_bands)}")
+                print(f"  Bands: {format_bands_display(result.nr_nsa_bands, 'n')}")
+            else:
+                print(f"  Not present in UE Capability")
+
+            # Show difference between SA and NSA
+            if result.nr_sa_bands and result.nr_nsa_bands:
+                sa_only = result.nr_sa_bands - result.nr_nsa_bands
+                nsa_only = result.nr_nsa_bands - result.nr_sa_bands
+                if sa_only:
+                    print(f"\n  SA-only bands: {format_bands_display(sa_only, 'n')}")
+                if nsa_only:
+                    print(f"  NSA-only bands: {format_bands_display(nsa_only, 'n')}")
 
             # Show v9e0 details if available
             if 'lte_v9e0' in result.raw_data:
@@ -419,4 +539,7 @@ if __name__ == "__main__":
         print("  - JSON with bandEUTRA/bandNR fields")
         print("  - Text with 'LTE Bands: 1, 2, 3' format")
         print("  - ASN.1 decoded with 'bandEUTRA: 1' entries")
-        print("\nNote: Handles 3GPP TS 36.331 v9e0 extension for bands 65+")
+        print("\nNote: Handles 3GPP TS 36.331:")
+        print("  - v9e0 extension for LTE bands 65+")
+        print("  - supportedBandListEN-DC-r15 for NR NSA/ENDC bands")
+        print("  - supportedBandListNR-SA-r15 for NR SA bands")

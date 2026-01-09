@@ -770,13 +770,163 @@ supportedBandListEUTRA-v9e0
 3. Actual B64 support: 4 - 3 = 1 (YES, B64 is supported)
 4. **Final LTE bands: [1, 2, 3, 7, 64, 66, 68, 71]**
 
-#### 6.8.6 NR Bands Extended Parsing
+#### 6.8.6 NR Bands Parsing (SA vs NSA/ENDC)
 
-Similar logic applies to NR bands for bands beyond the base range:
-- `supportedBandListNR`: Base NR bands
-- `supportedBandListNR-v15xy`: Extensions for additional NR bands
+**Reference**: 3GPP TS 36.331 Section 6.3.6 (IRAT-ParametersNR)
 
-**Note**: NR band extensions follow a similar pattern but the specific IE names may vary based on 3GPP release. Refer to 3GPP TS 38.331 for NR-specific extensions.
+NR bands in UE Capability are reported separately for **NR SA** and **NR NSA (ENDC)** modes. The parser must extract bands from the correct IEs:
+
+##### 6.8.6.1 NR Band Sources in UE Capability
+
+| IE Name | Location | Purpose | Use For |
+|---------|----------|---------|---------|
+| `supportedBandListNR` | `rf-Parameters` | NR bands in NR capability context | General NR reference |
+| `supportedBandListEN-DC-r15` | `irat-ParametersNR-r15` | NR bands for EN-DC operation | **NR NSA bands** |
+| `supportedBandListNR-SA-r15` | `irat-ParametersNR-v1540` | NR bands for SA operation | **NR SA bands** |
+
+##### 6.8.6.2 UE Capability Structure for NR SA/NSA
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  UE-EUTRA-Capability (LTE UE Capability with NR extensions)     │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  nonCriticalExtension                                           │
+│    └── ... (nested extensions) ...                              │
+│          └── irat-ParametersNR-r15                              │
+│                ├── en-DC-r15: supported                         │
+│                ├── supportedBandListEN-DC-r15    ◄── NR NSA     │
+│                │     ├── { bandNR-r15: 1 }                      │
+│                │     ├── { bandNR-r15: 3 }                      │
+│                │     ├── { bandNR-r15: 77 }                     │
+│                │     └── ...                                    │
+│                │                                                │
+│                └── nonCriticalExtension                         │
+│                      └── irat-ParametersNR-v1540                │
+│                            ├── sa-NR-r15: supported             │
+│                            └── supportedBandListNR-SA-r15 ◄── NR SA
+│                                  ├── { bandNR-r15: 1 }          │
+│                                  ├── { bandNR-r15: 3 }          │
+│                                  ├── { bandNR-r15: 77 }         │
+│                                  └── ...                        │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+##### 6.8.6.3 ASN.1 Definition (3GPP TS 36.331)
+
+```asn1
+IRAT-ParametersNR-r15 ::= SEQUENCE {
+    en-DC-r15                    ENUMERATED {supported} OPTIONAL,
+    eventB2-r15                  ENUMERATED {supported} OPTIONAL,
+    supportedBandListEN-DC-r15   SupportedBandListNR-r15 OPTIONAL
+}
+
+IRAT-ParametersNR-v1540 ::= SEQUENCE {
+    sa-NR-r15                    ENUMERATED {supported} OPTIONAL,
+    supportedBandListNR-SA-r15   SupportedBandListNR-r15 OPTIONAL
+}
+
+SupportedBandListNR-r15 ::= SEQUENCE (SIZE (1..maxBandsNR-r15)) OF SupportedBandNR-r15
+
+SupportedBandNR-r15 ::= SEQUENCE {
+    bandNR-r15   FreqBandIndicatorNR-r15
+}
+```
+
+##### 6.8.6.4 Parsing Algorithm for NR SA/NSA
+
+```python
+def extract_nr_sa_bands(content: str) -> Set[int]:
+    """
+    Extract NR SA bands from supportedBandListNR-SA-r15.
+    Location: irat-ParametersNR-v1540 → supportedBandListNR-SA-r15
+    """
+    nr_sa_bands = set()
+
+    # Find supportedBandListNR-SA-r15 section
+    sa_match = re.search(r'supportedBandListNR-SA-r15\s*\{', content)
+    if sa_match:
+        # Extract bandNR-r15 entries within this section
+        # Use brace counting to find section boundaries
+        section_content = extract_brace_section(content, sa_match.end())
+        bands = re.findall(r'bandNR-r15\s+(\d+)', section_content)
+        nr_sa_bands = {int(b) for b in bands}
+
+    return nr_sa_bands
+
+
+def extract_nr_nsa_bands(content: str) -> Set[int]:
+    """
+    Extract NR NSA (ENDC) bands from supportedBandListEN-DC-r15.
+    Location: irat-ParametersNR-r15 → supportedBandListEN-DC-r15
+    """
+    nr_nsa_bands = set()
+
+    # Find supportedBandListEN-DC-r15 section
+    endc_match = re.search(r'supportedBandListEN-DC-r15\s*\{', content)
+    if endc_match:
+        # Extract bandNR-r15 entries within this section
+        section_content = extract_brace_section(content, endc_match.end())
+        bands = re.findall(r'bandNR-r15\s+(\d+)', section_content)
+        nr_nsa_bands = {int(b) for b in bands}
+
+    return nr_nsa_bands
+```
+
+##### 6.8.6.5 Example from Real UE Capability
+
+**supportedBandListEN-DC-r15** (NR NSA/ENDC):
+```
+supportedBandListEN-DC-r15 {
+  { bandNR-r15 1 },
+  { bandNR-r15 2 },
+  { bandNR-r15 3 },
+  { bandNR-r15 5 },
+  { bandNR-r15 7 },
+  { bandNR-r15 8 },
+  { bandNR-r15 20 },
+  { bandNR-r15 28 },
+  { bandNR-r15 38 },
+  { bandNR-r15 41 },
+  { bandNR-r15 66 },
+  { bandNR-r15 71 },
+  { bandNR-r15 77 },
+  { bandNR-r15 78 }
+}
+→ NR NSA Bands: n1, n2, n3, n5, n7, n8, n20, n28, n38, n41, n66, n71, n77, n78
+```
+
+**supportedBandListNR-SA-r15** (NR SA):
+```
+supportedBandListNR-SA-r15 {
+  { bandNR-r15 1 },
+  { bandNR-r15 2 },
+  { bandNR-r15 3 },
+  { bandNR-r15 5 },
+  { bandNR-r15 25 },
+  { bandNR-r15 41 },
+  { bandNR-r15 48 },
+  { bandNR-r15 66 },
+  { bandNR-r15 77 },
+  { bandNR-r15 78 }
+}
+→ NR SA Bands: n1, n2, n3, n5, n25, n41, n48, n66, n77, n78
+```
+
+**Note**: SA and NSA band lists may differ! In this example:
+- n25, n48 are SA-only (not in ENDC list)
+- n7, n8, n20, n28, n38, n71 are NSA-only (not in SA list)
+
+##### 6.8.6.6 Fallback Behavior
+
+| Scenario | Behavior |
+|----------|----------|
+| `supportedBandListEN-DC-r15` missing | NR NSA bands = empty set |
+| `supportedBandListNR-SA-r15` missing | NR SA bands = empty set |
+| Both missing | Use `rf-Parameters.supportedBandListNR` for reference only |
+
+**Important**: Do NOT copy bands between SA and NSA when specific IEs are missing. They represent different capabilities.
 
 #### 6.8.7 Implementation Requirements
 
@@ -1966,9 +2116,13 @@ Band_Combos_Analyzer/
 | 2.9 | 2026-01-09 | 5d90dc8 | Add NV Pref column to band tracing tables (Section 8.3.3) |
 | 2.9 | 2026-01-09 | 5d90dc8 | Add NR NSA band tracing section to HTML report |
 | 2.9 | 2026-01-09 | 5d90dc8 | Update summary cards to show all 5 RAT types (Section 8.3.2) |
+| 3.0 | 2026-01-09 | - | Add UE Capability NR SA/NSA parsing from correct IEs (Section 6.8.6) |
+| 3.0 | 2026-01-09 | - | Document supportedBandListEN-DC-r15 for NR NSA bands |
+| 3.0 | 2026-01-09 | - | Document supportedBandListNR-SA-r15 for NR SA bands |
+| 3.0 | 2026-01-09 | - | Add 3GPP TS 36.331 ASN.1 definitions for IRAT-ParametersNR |
 
 ---
 
-*Document Version: 2.9*
-*Last Updated: 2026-01-09 - Added 2G/3G support, HTML collapsible sections, NV_Pref column, NR NSA display*
+*Document Version: 3.0*
+*Last Updated: 2026-01-09 - Added correct UE Capability NR SA/NSA parsing (supportedBandListEN-DC-r15, supportedBandListNR-SA-r15)*
 *Status: IMPLEMENTATION IN PROGRESS*
