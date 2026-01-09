@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+
+{% block title %}Analysis Tool - Home{% endblock %}
+
+{% block breadcrumb %}
+<span>Home</span>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard">
+    <div class="dashboard-title">
+        <h2>Analysis Tool</h2>
+        <p>Select a module to begin analysis</p>
+    </div>
+
+    <div class="modules-grid">
+        {% for module in modules %}
+        <a href="{{ module.url }}" class="module-tile {% if not module.active %}disabled{% endif %}">
+            <div class="module-content">
+                <h3>{{ module.name }}</h3>
+                {% if module.subtitle %}
+                <span class="module-subtitle">{{ module.subtitle }}</span>
+                {% endif %}
+                <p class="module-description">{{ module.description }}</p>
+                {% if not module.active %}
+                <span class="coming-soon-badge">Coming Soon</span>
+                {% endif %}
+            </div>
+        </a>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

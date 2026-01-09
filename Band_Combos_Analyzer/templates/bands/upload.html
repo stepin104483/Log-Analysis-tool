@@ -1,0 +1,245 @@
+{% extends "base.html" %}
+
+{% block title %}Bands Analysis - Upload{% endblock %}
+
+{% block breadcrumb %}
+<a href="{{ url_for('main.index') }}">Home</a>
+<span class="separator">&gt;</span>
+<span>Bands</span>
+{% endblock %}
+
+{% block content %}
+<div class="upload-page">
+    <div class="page-header">
+        <h2>Band Analysis</h2>
+        <a href="{{ url_for('main.index') }}" class="btn btn-secondary">
+            &larr; Back
+        </a>
+    </div>
+
+    <form action="{{ url_for('bands.analyze') }}" method="post" enctype="multipart/form-data" class="upload-form" onsubmit="return showLoading()">
+        <!-- Input Documents Section -->
+        <div class="form-section">
+            <h3 class="section-title">Input Documents</h3>
+
+            <div class="simple-upload-area">
+                <label for="input_files" class="upload-label">Select Input Files:</label>
+                <input type="file" id="input_files" name="input_files" multiple
+                       accept=".xml,.txt,.pdf,.png,.jpg,.jpeg,.bin,.hex" class="file-input-visible">
+                <p class="upload-hint">Hold Ctrl/Cmd to select multiple files</p>
+
+                <div class="selected-files" id="selectedFiles">
+                    <!-- Files will be listed here via JavaScript -->
+                </div>
+            </div>
+
+            <div class="file-detection-info">
+                <p><strong>Auto-detection based on filename:</strong></p>
+                <ul class="detection-list">
+                    <li><code>*rfc*.xml</code> → RFC XML</li>
+                    <li><code>*hardware*filter*.xml</code> or <code>*hw*filter*.xml</code> → HW Filter</li>
+                    <li><code>*carrier*policy*.xml</code> → Carrier Policy</li>
+                    <li><code>*generic*.xml</code> → Generic Restrictions</li>
+                    <li><code>*mcfg*.xml</code> → MCFG (NV Prefs)</li>
+                    <li><code>*mcc2bands*.xml</code> or <code>*mdb*.xml</code> → MDB</li>
+                    <li><code>*qxdm*.txt</code> or <code>*pm_rf*.txt</code> or <code>*0x1cca*.txt</code> → QXDM Log</li>
+                    <li><code>*ue_cap*.txt</code> or <code>*capability*.txt</code> → UE Capability</li>
+                </ul>
+            </div>
+
+            <div class="form-group mcc-field">
+                <label for="target_mcc">Target MCC (optional, for MDB lookup)</label>
+                <input type="text" id="target_mcc" name="target_mcc" placeholder="e.g., 310">
+            </div>
+        </div>
+
+        <!-- Knowledge Base Library Section -->
+        <div class="form-section">
+            <h3 class="section-title">Knowledge Base Library (for Claude Context)</h3>
+
+            <div class="kb-library">
+                {% if kb_files %}
+                <div class="kb-file-list">
+                    <p class="kb-instruction">Select files to include in analysis:</p>
+                    {% for file in kb_files %}
+                    <div class="kb-file-item">
+                        <label class="kb-checkbox">
+                            <input type="checkbox" name="kb_files" value="{{ file.name }}" checked>
+                            <span class="kb-filename">{{ file.name }}</span>
+                            <span class="kb-filesize">({{ (file.size / 1024)|round(1) }} KB)</span>
+                        </label>
+                        <button type="button" class="btn-delete" title="Delete from library"
+                                onclick="deleteKbFile('{{ file.name }}')">&times;</button>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="kb-empty">No files in library. Upload files below to add them.</p>
+                {% endif %}
+            </div>
+
+            <div class="kb-upload">
+                <p class="kb-label">Add to library:</p>
+                <div class="kb-upload-row">
+                    <input type="file" id="kb_new_files" name="kb_new_files" multiple
+                           accept=".xml,.txt,.pdf,.png,.jpg,.jpeg,.bin,.hex"
+                           form="kb-upload-form">
+                    <button type="submit" form="kb-upload-form" class="btn btn-secondary">Upload</button>
+                </div>
+                <p class="kb-supported">Supported: .xml, .txt, .pdf, .png, .jpg, .jpeg, .bin, .hex</p>
+            </div>
+        </div>
+
+        <div class="form-note">
+            <p><strong>Note:</strong> All files are optional. Provide at least one input document.</p>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary btn-large">Analyze</button>
+        </div>
+    </form>
+
+    <!-- Separate form for KB upload -->
+    <form id="kb-upload-form" action="{{ url_for('bands.kb_upload') }}" method="post" enctype="multipart/form-data" style="display:none;"></form>
+</div>
+
+<!-- Loading Overlay -->
+<div id="loadingOverlay" class="loading-overlay" style="display: none;">
+    <div class="loading-content">
+        <div class="loading-spinner"></div>
+        <h3 class="loading-title">Analyzing...</h3>
+        <div class="loading-stages">
+            <div class="stage" id="stage1">
+                <span class="stage-icon">○</span>
+                <span class="stage-text">Uploading files...</span>
+            </div>
+            <div class="stage" id="stage2">
+                <span class="stage-icon">○</span>
+                <span class="stage-text">Parsing input documents...</span>
+            </div>
+            <div class="stage" id="stage3">
+                <span class="stage-icon">○</span>
+                <span class="stage-text">Running band analysis...</span>
+            </div>
+            <div class="stage" id="stage4">
+                <span class="stage-icon">○</span>
+                <span class="stage-text">Generating HTML report...</span>
+            </div>
+            <div class="stage" id="stage5">
+                <span class="stage-icon">○</span>
+                <span class="stage-text">Finalizing results...</span>
+            </div>
+        </div>
+        <p class="loading-note">Please wait, this may take a moment...</p>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Simple file input handling
+var fileInput = document.getElementById('input_files');
+var selectedFilesDiv = document.getElementById('selectedFiles');
+
+// File input change
+fileInput.addEventListener('change', updateFileList);
+
+function detectFileType(filename) {
+    const lower = filename.toLowerCase();
+
+    if (lower.endsWith('.xml')) {
+        if (lower.includes('rfc')) return 'RFC XML';
+        if (lower.includes('hardware') && lower.includes('filter')) return 'HW Filter';
+        if (lower.includes('hw') && lower.includes('filter')) return 'HW Filter';
+        if (lower.includes('carrier') && lower.includes('policy')) return 'Carrier Policy';
+        if (lower.includes('generic')) return 'Generic Restrictions';
+        if (lower.includes('mcfg')) return 'MCFG (NV Prefs)';
+        if (lower.includes('mcc2bands')) return 'MDB';
+        if (lower.includes('mdb')) return 'MDB';
+        return 'XML File';
+    }
+
+    if (lower.endsWith('.txt')) {
+        if (lower.includes('qxdm') || lower.includes('pm_rf') || lower.includes('0x1cca') || lower.includes('pm rf')) return 'QXDM Log';
+        if (lower.includes('ue_cap') || lower.includes('capability') || lower.includes('ue cap')) return 'UE Capability';
+        return 'Text File';
+    }
+
+    return 'Unknown';
+}
+
+function updateFileList() {
+    selectedFilesDiv.innerHTML = '';
+
+    if (!fileInput.files || fileInput.files.length === 0) {
+        return;
+    }
+
+    var list = document.createElement('div');
+    list.className = 'file-list';
+
+    var header = document.createElement('p');
+    header.className = 'file-list-header';
+    header.textContent = 'Selected ' + fileInput.files.length + ' file(s):';
+    list.appendChild(header);
+
+    for (var i = 0; i < fileInput.files.length; i++) {
+        var file = fileInput.files[i];
+        var item = document.createElement('div');
+        item.className = 'file-list-item';
+
+        var detected = detectFileType(file.name);
+        var typeClass = (detected !== 'Unknown' && detected !== 'XML File' && detected !== 'Text File') ? 'detected' : 'unknown';
+
+        item.innerHTML = '<span class="file-name">' + file.name + '</span>' +
+                         '<span class="file-type ' + typeClass + '">' + detected + '</span>';
+        list.appendChild(item);
+    }
+
+    selectedFilesDiv.appendChild(list);
+}
+
+// Delete KB file function
+function deleteKbFile(filename) {
+    if (confirm('Are you sure you want to delete "' + filename + '" from the library?')) {
+        // Create and submit a form dynamically
+        var form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '/bands/kb/delete/' + encodeURIComponent(filename);
+        document.body.appendChild(form);
+        form.submit();
+    }
+}
+
+// Show loading overlay function
+function showLoading() {
+    console.log('Form submitting - showLoading called');
+    var overlay = document.getElementById('loadingOverlay');
+    overlay.style.display = 'flex';
+
+    // Animate stages
+    var delays = [0, 1500, 3000, 5000, 7000];
+    for (var i = 1; i <= 5; i++) {
+        (function(stageNum, delay) {
+            setTimeout(function() {
+                var stage = document.getElementById('stage' + stageNum);
+                if (stage) {
+                    stage.classList.add('active');
+                    stage.querySelector('.stage-icon').textContent = '●';
+                }
+            }, delay);
+        })(i, delays[i-1]);
+    }
+
+    // Return true to allow form submission
+    return true;
+}
+
+// Hide overlay if page is loaded from cache (back button)
+window.addEventListener('pageshow', function(event) {
+    if (event.persisted) {
+        document.getElementById('loadingOverlay').style.display = 'none';
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+
+{% block title %}Coming Soon - {{ module_name|title }}{% endblock %}
+
+{% block breadcrumb %}
+<a href="{{ url_for('main.index') }}">Home</a>
+<span class="separator">&gt;</span>
+<span>{{ module_name|title }}</span>
+{% endblock %}
+
+{% block content %}
+<div class="coming-soon-page">
+    <div class="coming-soon-content">
+        <div class="coming-soon-icon">
+            <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/>
+                <polyline points="12,6 12,12 16,14"/>
+            </svg>
+        </div>
+        <h2>{{ module_name|title|replace('_', ' ') }}</h2>
+        <p class="coming-soon-text">This module is coming soon!</p>
+        <p class="coming-soon-subtext">We're working hard to bring you this feature. Check back later.</p>
+        <a href="{{ url_for('main.index') }}" class="btn btn-primary">
+            &larr; Back to Home
+        </a>
+    </div>
+</div>
+{% endblock %}
