@@ -272,8 +272,23 @@ The tool can work with **ANY subset** of documents:
 
 ## 5. Filtering Pipeline
 
+### 5.1 Supported RAT Types
+
+The tool supports band analysis for **5 Radio Access Technologies (RATs)**:
+
+| RAT | Description | Band Format | Example |
+|-----|-------------|-------------|---------|
+| **GSM (2G)** | Global System for Mobile Communications | Frequency bands | GSM 850, GSM 900, GSM 1800, GSM 1900 |
+| **WCDMA (3G)** | Wideband CDMA / UMTS | Numbered bands 1-26 | W1, W2, W4, W5, W8 |
+| **LTE (4G)** | Long Term Evolution | Numbered bands 1-256+ | B1, B3, B7, B66, B71 |
+| **NR SA (5G)** | 5G Standalone | Numbered bands | n1, n77, n78 |
+| **NR NSA (5G)** | 5G Non-Standalone | Numbered bands | n1, n77, n78 |
+
+### 5.2 Pipeline Diagram
+
 ```
                          BAND FILTERING PIPELINE
+                    (Supports GSM, WCDMA, LTE, NR SA, NR NSA)
 
     +-------+     +----------+     +---------+     +---------+     +---------+
     |  RFC  | --> | HW Filter| --> | Carrier | --> | Generic | --> | NV Band |
@@ -296,11 +311,51 @@ The tool can work with **ANY subset** of documents:
 
 
     +------------------------------------------------------------------+
+    |  RAT-Specific Stage Applicability:                               |
+    |  - GSM:  RFC only (frequency-based, limited filtering stages)    |
+    |  - WCDMA: HW Filter (gw_bands), Carrier Policy (gw_excluded)     |
+    |  - LTE:  All stages (full filtering pipeline)                    |
+    |  - NR SA/NSA: All stages (full filtering pipeline)               |
+    +------------------------------------------------------------------+
+
+    +------------------------------------------------------------------+
     |  NOTE: MDB (mcc2bands) is NOT part of filtering pipeline.        |
     |  MDB data is passed to Claude as CONTEXT for expert insights.    |
     |  Claude uses MDB to explain location-based band restrictions.    |
     +------------------------------------------------------------------+
 ```
+
+### 5.3 GSM and WCDMA (2G/3G) Band Handling
+
+#### 5.3.1 GSM Band Sources
+
+| Source | Data Field | Content |
+|--------|------------|---------|
+| **RFC XML** | `gsm_bands` | GSM frequency bands: B850, B900, B1800, B1900 |
+| **HW Filter** | `gw_bands` | Combined GSM/WCDMA mask (complex indexing) |
+
+**Note:** GSM bands use frequency names (850, 900, 1800, 1900 MHz) rather than numbered bands.
+
+#### 5.3.2 WCDMA Band Sources
+
+| Source | Data Field | Content |
+|--------|------------|---------|
+| **HW Filter** | `gw_bands` | Combined GSM/WCDMA mask, bands 1-26 (0-indexed) |
+| **Carrier Policy** | `gw_excluded` | Excluded WCDMA bands |
+
+**WCDMA Band Conversion:** HW Filter `gw_bands` is 0-indexed. Value 0 = Band 1, value 25 = Band 26.
+
+#### 5.3.3 Filtering Stage Applicability by RAT
+
+| Stage | GSM | WCDMA | LTE | NR SA | NR NSA |
+|-------|-----|-------|-----|-------|--------|
+| RFC | ✓ | N/A | ✓ | ✓ | ✓ |
+| HW Filter | N/A | ✓ | ✓ | ✓ | ✓ |
+| Carrier Policy | N/A | ✓ | ✓ | ✓ | ✓ |
+| Generic Restrictions | N/A | N/A | ✓ | ✓ | ✓ |
+| NV Band Pref | N/A | N/A | ✓ | ✓ | ✓ |
+| QXDM | N/A | N/A | ✓ | ✓ | ✓ |
+| UE Capability | N/A | N/A | ✓ | ✓ | ✓ |
 
 ---
 
@@ -1203,32 +1258,54 @@ The final HTML report combines **Stage 1 analysis** and **Stage 2 Claude review*
 │  └─────────────────────────────────────────────────────────┘   │
 │                                                                 │
 │  ┌─────────────────────────────────────────────────────────┐   │
-│  │  DOCUMENT STATUS                                         │   │
+│  │  ▼ DOCUMENT STATUS (collapsible)                         │   │
 │  │  - Which files were loaded                               │   │
 │  │  - Band counts per source                                │   │
 │  └─────────────────────────────────────────────────────────┘   │
 │                                                                 │
 │  ┌─────────────────────────────────────────────────────────┐   │
-│  │  SUMMARY CARDS                                           │   │
-│  │  - LTE: X enabled / Y total                              │   │
-│  │  - NR SA: X enabled / Y total                            │   │
-│  │  - NR NSA: X enabled / Y total                           │   │
+│  │  ▼ SUMMARY CARDS (collapsible)                           │   │
+│  │  - GSM (2G): X enabled / Y total                         │   │
+│  │  - WCDMA (3G): X enabled / Y total                       │   │
+│  │  - LTE (4G): X enabled / Y total                         │   │
+│  │  - NR SA (5G): X enabled / Y total                       │   │
+│  │  - NR NSA (5G): X enabled / Y total                      │   │
 │  └─────────────────────────────────────────────────────────┘   │
 │                                                                 │
 │  ┌─────────────────────────────────────────────────────────┐   │
-│  │  BAND TRACING TABLES (Stage 1)                           │   │
+│  │  ▼ GSM (2G) BAND TRACING (collapsible)                   │   │
+│  │  - GSM bands (850, 900, 1800, 1900)                      │   │
+│  └─────────────────────────────────────────────────────────┘   │
+│                                                                 │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │  ▼ WCDMA (3G) BAND TRACING (collapsible)                 │   │
+│  │  - WCDMA bands (W1-W26)                                  │   │
+│  └─────────────────────────────────────────────────────────┘   │
+│                                                                 │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │  ▼ LTE (4G) BAND TRACING (collapsible)                   │   │
 │  │  - LTE bands with PASS/FAIL per stage                    │   │
-│  │  - NR SA bands with PASS/FAIL per stage                  │   │
 │  │  - Color-coded status (green/yellow/red)                 │   │
 │  └─────────────────────────────────────────────────────────┘   │
 │                                                                 │
 │  ┌─────────────────────────────────────────────────────────┐   │
-│  │  ANOMALIES DETECTED (Stage 1)                            │   │
-│  │  - List of anomalies with descriptions                   │   │
+│  │  ▼ NR SA (5G) BAND TRACING (collapsible)                 │   │
+│  │  - NR SA bands with PASS/FAIL per stage                  │   │
 │  └─────────────────────────────────────────────────────────┘   │
 │                                                                 │
 │  ┌─────────────────────────────────────────────────────────┐   │
-│  │  CLAUDE'S EXPERT REVIEW (Stage 2)  ◄── INTEGRATED       │   │
+│  │  ▼ NR NSA (5G) BAND TRACING (collapsible)                │   │
+│  │  - NR NSA bands with PASS/FAIL per stage                 │   │
+│  └─────────────────────────────────────────────────────────┘   │
+│                                                                 │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │  ▼ ANOMALIES DETECTED (collapsible)                      │   │
+│  │  - List of anomalies with descriptions                   │   │
+│  │  - Badge showing anomaly count                           │   │
+│  └─────────────────────────────────────────────────────────┘   │
+│                                                                 │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │  ▼ AI EXPERT REVIEW (collapsible)  ◄── INTEGRATED       │   │
 │  │  - Validation of findings                                │   │
 │  │  - Root cause analysis per anomaly                       │   │
 │  │  - Impact assessment matrix                              │   │
@@ -1244,12 +1321,59 @@ The final HTML report combines **Stage 1 analysis** and **Stage 2 Claude review*
 └─────────────────────────────────────────────────────────────────┘
 ```
 
+### 8.3 HTML Report Features
+
+#### 8.3.1 Collapsible Sections
+
+All sections in the HTML report are **collapsible/expandable**:
+- Click on any section header to collapse/expand
+- Smooth CSS transitions for better UX
+- Toggle icon (▼) rotates when collapsed
+- Useful for focusing on specific RAT types or hiding irrelevant sections
+
+#### 8.3.2 Summary Cards (5 RAT Types)
+
+| RAT | Card Color | Displayed Stats |
+|-----|------------|-----------------|
+| GSM (2G) | Orange gradient | enabled/total, filtered |
+| WCDMA (3G) | Pink gradient | enabled/total, filtered |
+| LTE (4G) | Green gradient | enabled/total, filtered, anomalies |
+| NR SA (5G) | Purple gradient | enabled/total, filtered, anomalies |
+| NR NSA (5G) | Pink/Red gradient | enabled/total, filtered, anomalies |
+
+#### 8.3.3 Band Tracing Table Columns
+
+Each band tracing table includes the following columns:
+
+| Column | Description |
+|--------|-------------|
+| **Band** | Band identifier (GSM 850, W1, B1, n77, etc.) |
+| **RFC** | Pass/Fail at RFC stage |
+| **HW** | Pass/Fail at HW Filter stage |
+| **Carrier** | Pass/Fail at Carrier Policy stage |
+| **Generic** | Pass/Fail at Generic Restrictions stage |
+| **NV Pref** | Pass/Fail at NV Band Preference stage |
+| **QXDM** | Pass/Fail at QXDM Log stage |
+| **UE Cap** | Pass/Fail at UE Capability stage |
+| **Status** | Final status (ENABLED/FILTERED/ANOMALY) |
+| **Filtered At** | Stage where band was filtered (if applicable) |
+
+#### 8.3.4 Section Badges
+
+Each section header displays badges showing:
+- **Count Badge**: Number of enabled bands / total bands (e.g., "20/23")
+- **Anomaly Badge**: Red badge showing anomaly count (if any)
+
 **Key Features:**
 - Single self-contained HTML file
 - Color-coded band status (Green=ENABLED, Yellow=FILTERED, Red=ANOMALY)
+- **Collapsible/expandable sections** for all RAT types and AI insight
+- **All 5 RAT types** displayed (GSM, WCDMA, LTE, NR SA, NR NSA)
+- **NV Pref column** in band tracing tables
 - Claude's expert review embedded directly in report
 - Downloadable for offline review and sharing
 - No external dependencies (all CSS inline)
+- Responsive design for mobile and desktop
 
 ---
 
@@ -1823,6 +1947,19 @@ Band_Combos_Analyzer/
 
 ---
 
-*Document Version: 2.8*
-*Last Updated: Added MCFG NV Band Preference parsing (Section 6.9) - SW-level band filtering from NV items*
+## 18. Document Change Log
+
+| Version | Date | Changes |
+|---------|------|---------|
+| 2.8 | - | Added MCFG NV Band Preference parsing (Section 6.9) |
+| 2.9 | 2026-01-09 | Added 2G (GSM) and 3G (WCDMA) band support (Section 5.1, 5.3) |
+| 2.9 | 2026-01-09 | Updated HTML report with collapsible sections (Section 8.3.1) |
+| 2.9 | 2026-01-09 | Added NV Pref column to band tracing tables (Section 8.3.3) |
+| 2.9 | 2026-01-09 | Added NR NSA band tracing section to HTML report |
+| 2.9 | 2026-01-09 | Updated summary cards to show all 5 RAT types (Section 8.3.2) |
+
+---
+
+*Document Version: 2.9*
+*Last Updated: 2026-01-09 - Added 2G/3G support, HTML collapsible sections, NV_Pref column, NR NSA display*
 *Status: IMPLEMENTATION IN PROGRESS*
