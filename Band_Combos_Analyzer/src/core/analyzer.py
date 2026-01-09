@@ -33,16 +33,29 @@ class AnalysisInput:
 @dataclass
 class AnalysisSummary:
     """Summary statistics for analysis"""
+    # GSM (2G)
+    gsm_total: int = 0
+    gsm_enabled: int = 0
+    gsm_filtered: int = 0
+
+    # WCDMA (3G)
+    wcdma_total: int = 0
+    wcdma_enabled: int = 0
+    wcdma_filtered: int = 0
+
+    # LTE (4G)
     lte_total: int = 0
     lte_enabled: int = 0
     lte_filtered: int = 0
     lte_anomalies: int = 0
 
+    # NR SA (5G)
     nr_sa_total: int = 0
     nr_sa_enabled: int = 0
     nr_sa_filtered: int = 0
     nr_sa_anomalies: int = 0
 
+    # NR NSA (5G)
     nr_nsa_total: int = 0
     nr_nsa_enabled: int = 0
     nr_nsa_filtered: int = 0
@@ -84,7 +97,11 @@ class BandAnalyzer:
         if inputs.rfc_path:
             rfc_data = parse_rfc_xml(inputs.rfc_path)
             if rfc_data:
-                self.tracer.set_rfc_bands(rfc_data.lte_bands, rfc_data.nr_bands)
+                self.tracer.set_rfc_bands(
+                    rfc_data.lte_bands,
+                    rfc_data.nr_bands,
+                    rfc_data.gsm_bands  # Include GSM bands
+                )
             else:
                 self.errors.append(f"Failed to parse RFC: {inputs.rfc_path}")
 
@@ -92,10 +109,13 @@ class BandAnalyzer:
         if inputs.hw_filter_path:
             hw_data = parse_hw_filter_xml(inputs.hw_filter_path)
             if hw_data:
+                # Convert gw_bands from 0-indexed to 1-indexed for WCDMA
+                gw_bands_1indexed = {idx + 1 for idx in hw_data.gw_bands} if hw_data.gw_bands else None
                 self.tracer.set_hw_filter_bands(
                     hw_data.lte_bands,
                     hw_data.nr_sa_bands,
-                    hw_data.nr_nsa_bands
+                    hw_data.nr_nsa_bands,
+                    gw_bands_1indexed  # Include GW (GSM/WCDMA) bands
                 )
             else:
                 self.errors.append(f"Failed to parse HW Filter: {inputs.hw_filter_path}")
@@ -107,7 +127,8 @@ class BandAnalyzer:
                 self.tracer.set_carrier_exclusions(
                     carrier_data.lte_excluded,
                     carrier_data.nr_sa_excluded,
-                    carrier_data.nr_nsa_excluded
+                    carrier_data.nr_nsa_excluded,
+                    carrier_data.gw_excluded  # Include GW (GSM/WCDMA) exclusions
                 )
             else:
                 self.errors.append(f"Failed to parse Carrier Policy: {inputs.carrier_policy_path}")
@@ -204,10 +225,28 @@ class BandAnalyzer:
         )
 
     def _calculate_summary(self, results: Dict[str, List[BandTraceResult]]) -> AnalysisSummary:
-        """Calculate summary statistics"""
+        """Calculate summary statistics for all RAT types"""
         summary = AnalysisSummary()
 
-        # LTE
+        # GSM (2G)
+        gsm_results = results.get('GSM', [])
+        summary.gsm_total = len(gsm_results)
+        for r in gsm_results:
+            if r.final_status == FinalStatus.ENABLED:
+                summary.gsm_enabled += 1
+            elif r.final_status == FinalStatus.FILTERED:
+                summary.gsm_filtered += 1
+
+        # WCDMA (3G)
+        wcdma_results = results.get('WCDMA', [])
+        summary.wcdma_total = len(wcdma_results)
+        for r in wcdma_results:
+            if r.final_status == FinalStatus.ENABLED:
+                summary.wcdma_enabled += 1
+            elif r.final_status == FinalStatus.FILTERED:
+                summary.wcdma_filtered += 1
+
+        # LTE (4G)
         lte_results = results.get('LTE', [])
         summary.lte_total = len(lte_results)
         for r in lte_results:
@@ -218,7 +257,7 @@ class BandAnalyzer:
             elif r.final_status in [FinalStatus.ANOMALY, FinalStatus.MISSING_IN_PM, FinalStatus.MISSING_IN_UE]:
                 summary.lte_anomalies += 1
 
-        # NR SA
+        # NR SA (5G)
         nr_sa_results = results.get('NR_SA', [])
         summary.nr_sa_total = len(nr_sa_results)
         for r in nr_sa_results:
@@ -229,7 +268,7 @@ class BandAnalyzer:
             elif r.final_status in [FinalStatus.ANOMALY, FinalStatus.MISSING_IN_PM, FinalStatus.MISSING_IN_UE]:
                 summary.nr_sa_anomalies += 1
 
-        # NR NSA
+        # NR NSA (5G)
         nr_nsa_results = results.get('NR_NSA', [])
         summary.nr_nsa_total = len(nr_nsa_results)
         for r in nr_nsa_results:
@@ -246,13 +285,22 @@ class BandAnalyzer:
         """Extract all anomalies from results"""
         anomalies = []
 
+        # Band prefix mapping
+        prefix_map = {
+            'GSM': 'GSM',    # GSM 850, GSM 900, etc.
+            'WCDMA': 'W',    # W1, W2, etc.
+            'LTE': 'B',      # B1, B2, etc.
+            'NR_SA': 'n',    # n1, n77, etc.
+            'NR_NSA': 'n'    # n1, n77, etc.
+        }
+
         for band_type, band_results in results.items():
             for r in band_results:
                 if r.final_status in [FinalStatus.ANOMALY, FinalStatus.MISSING_IN_PM,
                                       FinalStatus.MISSING_IN_UE, FinalStatus.NOT_SUPPORTED]:
                     # Check if it's a real anomaly (appears somewhere unexpected)
                     if r.anomaly_reason or r.final_status == FinalStatus.ANOMALY:
-                        prefix = 'B' if band_type == 'LTE' else 'n'
+                        prefix = prefix_map.get(band_type, 'B')
                         anomalies.append({
                             'band': f"{prefix}{r.band_num}",
                             'type': band_type,

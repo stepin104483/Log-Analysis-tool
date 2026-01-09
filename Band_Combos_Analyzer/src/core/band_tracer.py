@@ -60,12 +60,33 @@ class BandTracer:
     7. UE Cap - Network-reported bands
 
     Note: MDB is NOT a filtering stage. MDB data is stored for Claude context only.
+
+    Supported RAT Types:
+    - GSM (2G): Bands identified by frequency - 850, 900, 1800, 1900 MHz
+    - WCDMA (3G): Bands 1-26 (numbered like LTE)
+    - LTE (4G): Bands 1-256+
+    - NR SA (5G Standalone): Bands n1-n512
+    - NR NSA (5G Non-Standalone): Bands n1-n512
     """
 
     STAGES = ['RFC', 'HW_Filter', 'Carrier', 'Generic', 'NV_Pref', 'QXDM', 'UE_Cap']
 
+    # Standard GSM frequency bands
+    GSM_BANDS = ['850', '900', '1800', '1900']
+
+    # WCDMA bands typically range from 1-26
+    WCDMA_MAX_BAND = 26
+
     def __init__(self):
-        # Bands from each source
+        # GSM (2G) bands - stored as frequency strings
+        self.rfc_gsm: Set[str] = set()
+        self.hw_gw: Set[int] = set()  # Combined GSM/WCDMA mask (0-indexed converted to bands)
+        self.carrier_gw_excluded: Set[int] = set()
+
+        # WCDMA (3G) bands - stored as integers (band 1-26)
+        self.rfc_wcdma: Set[int] = set()
+
+        # LTE (4G) bands
         self.rfc_lte: Set[int] = set()
         self.rfc_nr: Set[int] = set()
 
@@ -115,29 +136,45 @@ class BandTracer:
             'UE_Cap': DocumentStatus('UE Capability', False),
         }
 
-    def set_rfc_bands(self, lte_bands: Set[int], nr_bands: Set[int]):
-        """Set RFC bands"""
+    def set_rfc_bands(self, lte_bands: Set[int], nr_bands: Set[int],
+                      gsm_bands: Optional[Set[str]] = None):
+        """Set RFC bands including optional GSM bands"""
         self.rfc_lte = lte_bands
         self.rfc_nr = nr_bands
+        if gsm_bands:
+            # Normalize GSM band names (strip 'B' prefix if present)
+            self.rfc_gsm = {b.replace('B', '').replace('b', '') for b in gsm_bands}
         self.doc_status['RFC'].loaded = True
         self.doc_status['RFC'].band_count = len(lte_bands) + len(nr_bands)
-        self.doc_status['RFC'].details = f"{len(lte_bands)} LTE, {len(nr_bands)} NR"
+        details = f"{len(lte_bands)} LTE, {len(nr_bands)} NR"
+        if gsm_bands:
+            details += f", {len(gsm_bands)} GSM"
+        self.doc_status['RFC'].details = details
 
-    def set_hw_filter_bands(self, lte: Set[int], nr_sa: Set[int], nr_nsa: Set[int]):
-        """Set HW filter allowed bands"""
+    def set_hw_filter_bands(self, lte: Set[int], nr_sa: Set[int], nr_nsa: Set[int],
+                            gw: Optional[Set[int]] = None):
+        """Set HW filter allowed bands including optional GW (GSM/WCDMA) bands"""
         self.hw_lte = lte
         self.hw_nr_sa = nr_sa
         self.hw_nr_nsa = nr_nsa
+        if gw is not None:
+            self.hw_gw = gw
         self.doc_status['HW_Filter'].loaded = True
         self.doc_status['HW_Filter'].details = "Loaded"
 
-    def set_carrier_exclusions(self, lte: Set[int], nr_sa: Set[int], nr_nsa: Set[int]):
-        """Set carrier policy excluded bands"""
+    def set_carrier_exclusions(self, lte: Set[int], nr_sa: Set[int], nr_nsa: Set[int],
+                               gw: Optional[Set[int]] = None):
+        """Set carrier policy excluded bands including optional GW (GSM/WCDMA)"""
         self.carrier_lte_excluded = lte
         self.carrier_nr_sa_excluded = nr_sa
         self.carrier_nr_nsa_excluded = nr_nsa
+        if gw is not None:
+            self.carrier_gw_excluded = gw
         self.doc_status['Carrier'].loaded = True
-        self.doc_status['Carrier'].details = f"Excl: {len(lte)} LTE, {len(nr_sa)} NR"
+        details = f"Excl: {len(lte)} LTE, {len(nr_sa)} NR"
+        if gw:
+            details += f", {len(gw)} GW"
+        self.doc_status['Carrier'].details = details
 
     def set_generic_exclusions(self, lte: Set[int], nr: Set[int]):
         """Set generic restriction excluded bands"""
@@ -418,6 +455,105 @@ class BandTracer:
 
         return result
 
+    def trace_gsm_band(self, band: str) -> BandTraceResult:
+        """
+        Trace a single GSM band through applicable stages.
+
+        GSM bands are identified by frequency: 850, 900, 1800, 1900 MHz.
+        Simplified pipeline since GSM doesn't have all stages like LTE/NR.
+        """
+        result = BandTraceResult(band_num=int(band), band_type='GSM')
+        filtered = False
+
+        # Stage 1: RFC - Check if GSM band is in RFC
+        if self.doc_status['RFC'].loaded:
+            if band in self.rfc_gsm:
+                result.stages['RFC'] = BandStatus.PASS
+            else:
+                result.stages['RFC'] = BandStatus.FAIL
+                filtered = True
+                result.filtered_at = 'RFC'
+        else:
+            result.stages['RFC'] = BandStatus.NA
+
+        # Stage 2: HW Filter - GSM uses gw_bands mask
+        # Note: GSM bands in hw_gw use a different indexing than numbered bands
+        # For simplicity, we mark as N/A since GSM indexing is complex
+        result.stages['HW_Filter'] = BandStatus.NA
+
+        # Stage 3: Carrier Policy
+        # GSM carrier exclusions would be in gw_excluded but use different indexing
+        result.stages['Carrier'] = BandStatus.NA
+
+        # Stages 4-7: Not applicable for GSM
+        result.stages['Generic'] = BandStatus.NA
+        result.stages['NV_Pref'] = BandStatus.NA
+        result.stages['QXDM'] = BandStatus.NA
+        result.stages['UE_Cap'] = BandStatus.NA
+
+        # Determine final status
+        if filtered:
+            result.final_status = FinalStatus.FILTERED
+        else:
+            result.final_status = FinalStatus.ENABLED
+
+        return result
+
+    def trace_wcdma_band(self, band: int) -> BandTraceResult:
+        """
+        Trace a single WCDMA (3G) band through applicable stages.
+
+        WCDMA bands are numbered 1-26, similar to LTE but for 3G.
+        Uses gw_bands mask from HW filter and carrier policy.
+        """
+        result = BandTraceResult(band_num=band, band_type='WCDMA')
+        filtered = False
+
+        # Stage 1: RFC - WCDMA bands would appear similar to LTE bands in RFC
+        # RFC doesn't typically distinguish WCDMA from LTE in band naming
+        result.stages['RFC'] = BandStatus.NA
+
+        # Stage 2: HW Filter - WCDMA uses gw_bands mask
+        if filtered:
+            result.stages['HW_Filter'] = BandStatus.SKIPPED
+        elif not self.doc_status['HW_Filter'].loaded or not self.hw_gw:
+            result.stages['HW_Filter'] = BandStatus.NA
+        else:
+            # gw_bands is 0-indexed, so band 1 = index 0
+            if band in self.hw_gw:
+                result.stages['HW_Filter'] = BandStatus.PASS
+            else:
+                result.stages['HW_Filter'] = BandStatus.FAIL
+                filtered = True
+                result.filtered_at = 'HW_Filter'
+
+        # Stage 3: Carrier Policy
+        if filtered:
+            result.stages['Carrier'] = BandStatus.SKIPPED
+        elif not self.doc_status['Carrier'].loaded or not self.carrier_gw_excluded:
+            result.stages['Carrier'] = BandStatus.NA
+        else:
+            if band in self.carrier_gw_excluded:
+                result.stages['Carrier'] = BandStatus.FAIL
+                filtered = True
+                result.filtered_at = 'Carrier'
+            else:
+                result.stages['Carrier'] = BandStatus.PASS
+
+        # Stages 4-7: Not typically applicable for WCDMA
+        result.stages['Generic'] = BandStatus.NA
+        result.stages['NV_Pref'] = BandStatus.NA
+        result.stages['QXDM'] = BandStatus.NA
+        result.stages['UE_Cap'] = BandStatus.NA
+
+        # Determine final status
+        if filtered:
+            result.final_status = FinalStatus.FILTERED
+        else:
+            result.final_status = FinalStatus.ENABLED
+
+        return result
+
     def _determine_final_status(self, result: BandTraceResult, filtered: bool) -> FinalStatus:
         """Determine final status based on stage results"""
 
@@ -476,8 +612,10 @@ class BandTracer:
         return all_lte, all_nr
 
     def trace_all_bands(self) -> Dict[str, List[BandTraceResult]]:
-        """Trace all bands from all sources"""
+        """Trace all bands from all sources including 2G/3G"""
         results = {
+            'GSM': [],
+            'WCDMA': [],
             'LTE': [],
             'NR_SA': [],
             'NR_NSA': []
@@ -485,6 +623,21 @@ class BandTracer:
 
         # Get all unique bands
         all_lte, all_nr = self.get_all_bands()
+
+        # Trace GSM bands (from RFC)
+        gsm_bands = self.rfc_gsm if self.rfc_gsm else set()
+        # Also include all standard GSM bands if RFC is loaded
+        if self.doc_status['RFC'].loaded:
+            for band in self.GSM_BANDS:
+                if band in gsm_bands:
+                    results['GSM'].append(self.trace_gsm_band(band))
+
+        # Trace WCDMA bands (bands 1-26 from HW gw_bands mask)
+        if self.hw_gw:
+            # Only trace WCDMA bands that are in the gw_bands range (1-26)
+            wcdma_bands = {b for b in self.hw_gw if 1 <= b <= self.WCDMA_MAX_BAND}
+            for band in sorted(wcdma_bands):
+                results['WCDMA'].append(self.trace_wcdma_band(band))
 
         # Trace LTE bands
         for band in sorted(all_lte):

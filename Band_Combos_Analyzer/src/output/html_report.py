@@ -56,6 +56,8 @@ class HTMLReport:
 
         {self._document_status_html()}
         {self._summary_html()}
+        {self._band_table_html("GSM (2G)", self.trace_results.get('GSM', []), 'GSM ', 'gsm')}
+        {self._band_table_html("WCDMA (3G)", self.trace_results.get('WCDMA', []), 'W', 'wcdma')}
         {self._band_table_html("LTE (4G)", self.trace_results.get('LTE', []), 'B', 'lte')}
         {self._band_table_html("NR SA (5G Standalone)", self.trace_results.get('NR_SA', []), 'n', 'nr-sa')}
         {self._band_table_html("NR NSA (5G Non-Standalone)", self.trace_results.get('NR_NSA', []), 'n', 'nr-nsa')}
@@ -195,6 +197,15 @@ class HTMLReport:
             padding: 20px;
             border-radius: 10px;
             text-align: center;
+        }
+
+        .summary-card.gsm {
+            background: linear-gradient(135deg, #f5af19, #f12711);
+        }
+
+        .summary-card.wcdma {
+            background: linear-gradient(135deg, #ee9ca7, #ffdde1);
+            color: #333;
         }
 
         .summary-card.lte {
@@ -414,6 +425,16 @@ class HTMLReport:
             </div>
             <div class="section-content">
                 <div class="summary-grid">
+                    <div class="summary-card gsm">
+                        <h3>GSM (2G)</h3>
+                        <div class="number">{s.gsm_enabled}/{s.gsm_total}</div>
+                        <div class="details">{s.gsm_filtered} filtered</div>
+                    </div>
+                    <div class="summary-card wcdma">
+                        <h3>WCDMA (3G)</h3>
+                        <div class="number">{s.wcdma_enabled}/{s.wcdma_total}</div>
+                        <div class="details">{s.wcdma_filtered} filtered</div>
+                    </div>
                     <div class="summary-card lte">
                         <h3>LTE (4G)</h3>
                         <div class="number">{s.lte_enabled}/{s.lte_total}</div>
