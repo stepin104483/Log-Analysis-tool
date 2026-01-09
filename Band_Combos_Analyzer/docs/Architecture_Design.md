@@ -1949,14 +1949,23 @@ Band_Combos_Analyzer/
 
 ## 18. Document Change Log
 
-| Version | Date | Changes |
-|---------|------|---------|
-| 2.8 | - | Added MCFG NV Band Preference parsing (Section 6.9) |
-| 2.9 | 2026-01-09 | Added 2G (GSM) and 3G (WCDMA) band support (Section 5.1, 5.3) |
-| 2.9 | 2026-01-09 | Updated HTML report with collapsible sections (Section 8.3.1) |
-| 2.9 | 2026-01-09 | Added NV Pref column to band tracing tables (Section 8.3.3) |
-| 2.9 | 2026-01-09 | Added NR NSA band tracing section to HTML report |
-| 2.9 | 2026-01-09 | Updated summary cards to show all 5 RAT types (Section 8.3.2) |
+| Version | Date | Commit | Changes |
+|---------|------|--------|---------|
+| 1.0 | - | ae0fd6f | Initial architecture design - Basic tool structure and components |
+| 2.0 | - | 9f3b6e7 | Add optional/independent layers design - All documents optional |
+| 2.1 | - | 60a3146 | Update Stage 2 to use Claude CLI with prompt.txt approach |
+| 2.2 | - | 6aaf95b | Add QXDM log input section with QCAT future enhancement (Section 14) |
+| 2.3 | - | ab8c9ec | Add Knowledge Base section for domain knowledge management (Section 15) |
+| 2.4 | - | 8ed2afb | Add 3-stage integrated report and MDB context improvements |
+| 2.5 | - | d71f076 | Fix band indexing (0→1 indexed) documentation (Section 6.7) |
+| 2.6 | - | d71f076 | Add UE Capability v9e0 extended band parsing (Section 6.8) |
+| 2.7 | - | d71f076 | Add MDB as Claude context only (not filtering) documentation |
+| 2.8 | - | 9c545ee | Add MCFG NV Band Preference parsing - Stage 5 (Section 6.9) |
+| 2.9 | 2026-01-09 | 5d90dc8 | Add 2G (GSM) and 3G (WCDMA) band support (Section 5.1, 5.3) |
+| 2.9 | 2026-01-09 | 5d90dc8 | Update HTML report with collapsible sections (Section 8.3.1) |
+| 2.9 | 2026-01-09 | 5d90dc8 | Add NV Pref column to band tracing tables (Section 8.3.3) |
+| 2.9 | 2026-01-09 | 5d90dc8 | Add NR NSA band tracing section to HTML report |
+| 2.9 | 2026-01-09 | 5d90dc8 | Update summary cards to show all 5 RAT types (Section 8.3.2) |
 
 ---
 
