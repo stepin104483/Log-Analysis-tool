@@ -1,7 +1,7 @@
 # Analysis Tool - Web UI Design Document
 
-**Version**: 1.0
-**Last Updated**: 2026-01-09
+**Version**: 2.0
+**Last Updated**: 2026-01-13
 **Related Document**: [Architecture_Design.md](./Architecture_Design.md)
 
 ---
@@ -25,6 +25,8 @@ This document describes the web-based user interface for the Analysis Tool, buil
 | Frontend | HTML5, CSS3, JavaScript |
 | Templates | Jinja2 |
 | Styling | Custom CSS (no frameworks) |
+| Markdown Rendering | Python `markdown` library |
+| AI Integration | Claude CLI (local execution) |
 
 ---
 
@@ -59,7 +61,8 @@ Log-Analysis-tool/
     │   ├── coming_soon.html        # Placeholder page
     │   └── bands/
     │       ├── upload.html         # File upload form
-    │       └── results.html        # Analysis results
+    │       ├── results.html        # Stage 1 analysis results
+    │       └── ai_results.html     # AI Expert Review results
     │
     └── static/
         └── css/
@@ -73,8 +76,10 @@ Log-Analysis-tool/
 | `/` | GET | Main dashboard with module tiles |
 | `/coming-soon/<module>` | GET | Placeholder for future modules |
 | `/bands` | GET | Bands upload page |
-| `/bands/analyze` | POST | Run band analysis |
+| `/bands/analyze` | POST | Run band analysis (Stage 1) |
+| `/bands/ai-review` | POST | Run Claude AI Expert Review (Stage 2) |
 | `/bands/download/<file>` | GET | Download HTML report |
+| `/bands/generate-final-report` | POST | Generate final report with manual Claude review |
 | `/bands/kb/upload` | POST | Upload to KB library |
 | `/bands/kb/delete/<file>` | POST | Delete from KB library |
 
@@ -149,9 +154,9 @@ Two-section form for input files and knowledge base:
 - Upload new files to library
 - Delete files from library
 
-### 3.3 Results Page
+### 3.3 Results Page (Stage 1)
 
-Displays analysis output with download option:
+Displays automated analysis output with AI review option:
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
@@ -160,13 +165,81 @@ Displays analysis output with download option:
 │  [← New Analysis]                        [Download HTML Report]      │
 ├─────────────────────────────────────────────────────────────────────┤
 │                                                                      │
-│  ┌─ CLI Output ───────────────────────────────────────────────────┐ │
+│  ┌─ Stage 1: Automated Analysis (CLI Output) ──────────────────────┐ │
 │  │ ================================================================ │
 │  │ BAND COMBOS ANALYZER - Stage 1: Automated Analysis              │
 │  │ ...                                                             │
 │  └─────────────────────────────────────────────────────────────────┘ │
 │                                          (Scrollable, dark theme)    │
 │                                                                      │
+│                    [ AI Expert Review ]                              │
+│         Click to get Claude's expert analysis (runs locally)         │
+│                                                                      │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+### 3.4 AI Review Results Page (Stage 2)
+
+Displays Claude's expert review with download option:
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│  Analysis Tool > Bands > AI Review                                   │
+├─────────────────────────────────────────────────────────────────────┤
+│  [← New Analysis]                     [Download Final Report (HTML)] │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                      │
+│  ┌─ Stage 2: Claude AI Expert Review ──────────────────────────────┐ │
+│  │                                                                  │ │
+│  │  # Band Analysis Expert Review                                   │ │
+│  │                                                                  │ │
+│  │  ## Executive Summary                                            │ │
+│  │  The automated analysis shows a well-configured modem...         │ │
+│  │                                                                  │ │
+│  │  ## Overall Verdict                                              │ │
+│  │  ✅ SAFE FOR DEPLOYMENT                                          │ │
+│  │                                                                  │ │
+│  └─────────────────────────────────────────────────────────────────┘ │
+│                   (Rendered Markdown with styled tables)             │
+│                                                                      │
+│                    [ Download Final Report ]                         │
+│                                                                      │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+### 3.5 Final HTML Report Structure
+
+The downloaded final report includes both stages with verdict at top:
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│  Band Analysis Report                                                │
+│  Generated: 2026-01-13                                               │
+├─────────────────────────────────────────────────────────────────────┤
+│  ▼ Document Status                                                   │
+├─────────────────────────────────────────────────────────────────────┤
+│  ▼ Summary                                                           │
+│    GSM: 4/4 | WCDMA: 17/26 | LTE: 27/28 | NR SA: 20/23              │
+├─────────────────────────────────────────────────────────────────────┤
+│  ▼ Claude Expert Review Verdict        [Green/Yellow/Red border]    │
+│    ✅ SAFE FOR DEPLOYMENT                                            │
+│    - All PASS/FAIL determinations correct                            │
+│    - No unexplained anomalies                                        │
+├─────────────────────────────────────────────────────────────────────┤
+│  ▼ GSM (2G)                                                          │
+│  ▼ WCDMA (3G)                                                        │
+│  ▼ LTE (4G)                                                          │
+│  ▼ NR SA (5G Standalone)                                             │
+│  ▼ NR NSA (5G Non-Standalone)                                        │
+│  ▼ Anomalies                                                         │
+├─────────────────────────────────────────────────────────────────────┤
+│  ▼ Stage 2: Claude Expert Review (Full Analysis)                     │
+│    - Executive Summary                                               │
+│    - Validation of Findings                                          │
+│    - Anomaly Analysis                                                │
+│    - Impact Assessment                                               │
+│    - Observations & Recommendations                                  │
+│    - Overall Verdict                                                 │
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -227,22 +300,98 @@ MAX_CONTENT_LENGTH = 50 * 1024 * 1024  # 50MB
 
 ---
 
-## 6. Integration with Analysis Engine
+## 6. AI Expert Review Integration
 
-### 6.1 Analysis Flow
+### 6.1 Claude CLI Integration
+
+The AI Expert Review feature executes Claude CLI locally via subprocess:
+
+```python
+def run_claude_cli(prompt_path):
+    result = subprocess.run(
+        ['claude', '-p', '--dangerously-skip-permissions'],
+        input=prompt_content,
+        capture_output=True,
+        text=True,
+        timeout=300,  # 5 minute timeout
+        shell=True
+    )
+    return result.stdout, None if result.returncode == 0 else result.stderr
+```
+
+### 6.2 Markdown Rendering
+
+Claude's response (Markdown format) is converted to styled HTML:
+
+```python
+import markdown
+
+md = markdown.Markdown(extensions=[
+    'tables',           # Render Markdown tables
+    'fenced_code',      # Code blocks with ```
+    'codehilite',       # Syntax highlighting
+    'toc',              # Table of contents
+    'nl2br'             # Line breaks
+])
+rendered_html = md.convert(claude_review)
+```
+
+### 6.3 Unicode Character Handling
+
+Special characters are converted to HTML entities to prevent encoding issues:
+
+| Character | Entity | Description |
+|-----------|--------|-------------|
+| ✓ | `&#10003;` | Checkmark |
+| ✔ | `&#10004;` | Heavy checkmark |
+| ✅ | `&#9989;` | Green checkmark |
+| ❌ | `&#10060;` | Red X |
+| ⚠ | `&#9888;` | Warning sign |
+| → | `&rarr;` | Right arrow |
+
+### 6.4 Verdict Extraction
+
+The "Overall Verdict" section is extracted and placed at the top of the report:
+
+```python
+# Regex pattern to extract verdict section
+verdict_pattern = r'(#{1,2}\s*\d*\.?\s*Overall Verdict.*?)(?=#{1,2}\s|\Z|---)'
+verdict_match = re.search(verdict_pattern, claude_review, re.DOTALL)
+```
+
+**Verdict Color Coding:**
+| Status | Border Color | Header Gradient |
+|--------|--------------|-----------------|
+| Safe | Green (#28a745) | Green to Teal |
+| Warning | Yellow (#ffc107) | Yellow to Orange |
+| Unsafe | Red (#dc3545) | Red to Dark Red |
+
+---
+
+## 7. Integration with Analysis Engine
+
+### 7.1 Analysis Flow
 
 ```
+Stage 1: Automated Analysis
 1. User uploads files via web form
 2. Files saved to temp directory with unique session ID
 3. AnalysisInput created with file paths
 4. BandAnalyzer.analyze() executed
 5. CLI output captured via StringIO redirect
-6. HTML report generated
+6. HTML report + prompt file generated
 7. Results displayed to user
 8. Temp files cleaned up
+
+Stage 2: AI Expert Review (Optional)
+9. User clicks "AI Expert Review" button
+10. Claude CLI executed with prompt file
+11. Response rendered as HTML (Markdown → HTML)
+12. Verdict extracted and placed after Summary
+13. Final report available for download
 ```
 
-### 6.2 Code Integration
+### 7.2 Code Integration
 
 ```python
 # Create input from uploaded files
@@ -262,30 +411,42 @@ generate_html_report(result, output_path)
 
 ---
 
-## 7. Running the Web UI
+## 8. Running the Web UI
 
-### 7.1 Installation
+### 8.1 Prerequisites
+
+- Python 3.9+
+- Claude CLI installed and in PATH (for AI Expert Review)
+
+### 8.2 Installation
 
 ```bash
 cd Log-Analysis-tool
 pip install -r requirements.txt
 ```
 
-### 7.2 Starting the Server
+**Dependencies (requirements.txt):**
+```
+flask>=2.3.0
+werkzeug>=2.3.0
+markdown>=3.4.0
+```
+
+### 8.3 Starting the Server
 
 ```bash
 python run_web.py
 ```
 
-### 7.3 Access
+### 8.4 Access
 
 Open browser to: `http://localhost:5000`
 
 ---
 
-## 8. Future Enhancements
+## 9. Future Enhancements
 
-### 8.1 Planned Modules
+### 9.1 Planned Modules
 
 | Module | Description | Status |
 |--------|-------------|--------|
@@ -294,23 +455,25 @@ Open browser to: `http://localhost:5000`
 | Supplementary Services | SS feature analysis | Planned |
 | PICS | Protocol conformance | Planned |
 
-### 8.2 Potential Features
+### 9.2 Potential Features
 
 - User authentication
 - Analysis history/saved sessions
 - Batch analysis mode
 - API endpoints for automation
 - Dark mode theme option
+- Export to PDF format
 
 ---
 
-## 9. Document History
+## 10. Document History
 
 | Version | Date | Changes |
 |---------|------|---------|
 | 1.0 | 2026-01-09 | Initial web UI design and implementation |
+| 2.0 | 2026-01-13 | Added AI Expert Review with Claude CLI integration, Markdown rendering, verdict extraction, Unicode handling |
 
 ---
 
-*Document Version: 1.0*
+*Document Version: 2.0*
 *Related: [Architecture_Design.md](./Architecture_Design.md) for backend analysis details*

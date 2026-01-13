@@ -321,48 +321,315 @@ def generate_final_report():
 
 
 def inject_claude_review(html_content, claude_review):
-    """Inject Claude's review into the HTML report."""
-    # Escape HTML in the review text
-    import html
-    escaped_review = html.escape(claude_review)
+    """Inject Claude's review into the HTML report with Markdown rendering."""
+    import markdown
+    import re
 
-    # Create the Claude review section HTML
-    claude_section = f'''
-    <div class="section claude-review-section">
-        <h2>Stage 2: Claude Expert Review</h2>
-        <div class="claude-review-content">
-            <pre style="white-space: pre-wrap; word-wrap: break-word; font-family: inherit; margin: 0; line-height: 1.6;">{escaped_review}</pre>
+    # Replace common Unicode symbols with HTML entities to avoid encoding issues
+    unicode_replacements = {
+        '\u2713': '&#10003;',      # ✓ Checkmark
+        '\u2714': '&#10004;',      # ✔ Heavy checkmark
+        '\u2717': '&#10007;',      # ✗ Ballot X
+        '\u2718': '&#10008;',      # ✘ Heavy ballot X
+        '\u2705': '&#9989;',       # ✅ White heavy checkmark
+        '\u274C': '&#10060;',      # ❌ Cross mark
+        '\u26A0': '&#9888;',       # ⚠ Warning sign
+        '\u2192': '&rarr;',        # → Right arrow
+        '\u2190': '&larr;',        # ← Left arrow
+        '\u2022': '&bull;',        # • Bullet
+        '\u2014': '&mdash;',       # — Em dash
+        '\u2013': '&ndash;',       # – En dash
+        '\u201C': '&ldquo;',       # " Left double quote
+        '\u201D': '&rdquo;',       # " Right double quote
+        '\u2018': '&lsquo;',       # ' Left single quote
+        '\u2019': '&rsquo;',       # ' Right single quote
+        '\u2026': '&hellip;',      # … Ellipsis
+    }
+
+    for char, entity in unicode_replacements.items():
+        claude_review = claude_review.replace(char, entity)
+
+    # Also fix common mojibake patterns using regex
+    mojibake_fixes = [
+        (r'\xc3\xa2\xc2\x9c\xc2\x93', '&#10003;'),  # ✓
+        (r'\xc3\xa2\xc2\x9c\xc2\x94', '&#10004;'),  # ✔
+        (r'\xc3\xa2\xc2\x9c\xc2\x85', '&#9989;'),   # ✅
+        (r'\xc3\xa2\xc2\x9d\xc2\x8c', '&#10060;'),  # ❌
+    ]
+    for pattern, replacement in mojibake_fixes:
+        claude_review = re.sub(pattern, replacement, claude_review)
+
+    # Extract the "Overall Verdict" section from Claude's review
+    # Match various patterns: "## 5. Overall Verdict", "## Verdict", "## Final Verdict", "## Conclusion"
+    verdict_patterns = [
+        r'(#{1,3}\s*\d*\.?\s*Overall Verdict\s*\n.*?)(?=\n#{1,3}\s|\Z|^\s*---)',
+        r'(#{1,3}\s*\d*\.?\s*Final Verdict\s*\n.*?)(?=\n#{1,3}\s|\Z|^\s*---)',
+        r'(#{1,3}\s*\d*\.?\s*Verdict\s*\n.*?)(?=\n#{1,3}\s|\Z|^\s*---)',
+        r'(#{1,3}\s*\d*\.?\s*Conclusion\s*\n.*?)(?=\n#{1,3}\s|\Z|^\s*---)',
+    ]
+
+    verdict_content = ""
+    for pattern in verdict_patterns:
+        verdict_match = re.search(pattern, claude_review, re.DOTALL | re.IGNORECASE | re.MULTILINE)
+        if verdict_match:
+            verdict_content = verdict_match.group(1).strip()
+            print(f"[DEBUG] Verdict found with pattern, length: {len(verdict_content)}", flush=True)
+            break
+
+    if not verdict_content:
+        print("[DEBUG] No verdict section found in Claude review", flush=True)
+
+    # Convert Markdown to HTML with extensions
+    md = markdown.Markdown(extensions=[
+        'tables',
+        'fenced_code',
+        'codehilite',
+        'toc',
+        'nl2br'
+    ])
+    rendered_review = md.convert(claude_review)
+
+    # Convert verdict to HTML separately
+    md_verdict = markdown.Markdown(extensions=['tables', 'fenced_code', 'nl2br'])
+    rendered_verdict = md_verdict.convert(verdict_content) if verdict_content else ""
+
+    # Determine verdict status for styling (safe = green, warning = yellow, unsafe = red)
+    verdict_class = "verdict-safe"  # default
+    if verdict_content:
+        verdict_lower = verdict_content.lower()
+        if 'unsafe' in verdict_lower or 'fail' in verdict_lower or 'not recommended' in verdict_lower:
+            verdict_class = "verdict-unsafe"
+        elif 'warning' in verdict_lower or 'caution' in verdict_lower or 'review' in verdict_lower:
+            verdict_class = "verdict-warning"
+
+    # Create the verdict section to insert after Summary
+    verdict_section = ""
+    if rendered_verdict:
+        verdict_section = f'''
+    <div class="section verdict-section {verdict_class}">
+        <div class="section-header verdict-header">
+            <h2>Claude Expert Review Verdict</h2>
+            <span class="toggle-icon">&#9660;</span>
+        </div>
+        <div class="section-content">
+            <div class="verdict-content">
+                {rendered_verdict}
+            </div>
         </div>
     </div>
+        '''
+
+    # Create the full Claude review section HTML
+    claude_section = f'''
+    <div class="section claude-review-section">
+        <div class="section-header claude-header">
+            <h2>Stage 2: Claude Expert Review (Full Analysis)</h2>
+            <span class="toggle-icon">&#9660;</span>
+        </div>
+        <div class="section-content">
+            <div class="claude-review-content">
+                {rendered_review}
+            </div>
+        </div>
+    </div>
+    '''
+
+    # CSS styles for both sections
+    styles = '''
     <style>
-        .claude-review-section {{
+        /* Verdict Section Styles */
+        .verdict-section {
+            margin-bottom: 20px;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+        .verdict-section.verdict-safe {
+            border: 2px solid #28a745;
+        }
+        .verdict-section.verdict-warning {
+            border: 2px solid #ffc107;
+        }
+        .verdict-section.verdict-unsafe {
+            border: 2px solid #dc3545;
+        }
+        .verdict-header {
+            background: linear-gradient(135deg, #28a745, #20c997) !important;
+        }
+        .verdict-section.verdict-warning .verdict-header {
+            background: linear-gradient(135deg, #ffc107, #fd7e14) !important;
+        }
+        .verdict-section.verdict-unsafe .verdict-header {
+            background: linear-gradient(135deg, #dc3545, #c82333) !important;
+        }
+        .verdict-content {
+            background-color: white;
+            padding: 20px 25px;
+            line-height: 1.7;
+        }
+        .verdict-content h2, .verdict-content h3 {
+            margin-top: 0;
+            color: #28a745;
+        }
+        .verdict-section.verdict-warning .verdict-content h2,
+        .verdict-section.verdict-warning .verdict-content h3 {
+            color: #d39e00;
+        }
+        .verdict-section.verdict-unsafe .verdict-content h2,
+        .verdict-section.verdict-unsafe .verdict-content h3 {
+            color: #dc3545;
+        }
+        .verdict-content ul, .verdict-content ol {
+            margin: 10px 0 10px 25px;
+        }
+        .verdict-content li {
+            margin: 6px 0;
+        }
+        .verdict-content strong {
+            color: inherit;
+        }
+
+        /* Claude Review Section Styles */
+        .claude-review-section {
             margin-top: 30px;
-            padding: 20px;
             background-color: #f0f7ff;
             border: 1px solid #b8daff;
-            border-radius: 8px;
-        }}
-        .claude-review-section h2 {{
-            color: #004085;
-            margin-bottom: 15px;
-            border-bottom: 2px solid #004085;
-            padding-bottom: 10px;
-        }}
-        .claude-review-content {{
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .claude-header {
+            background: linear-gradient(135deg, #1a73e8, #4285f4) !important;
+        }
+        .claude-review-content {
             background-color: white;
-            padding: 20px;
+            padding: 25px;
+            line-height: 1.7;
+            color: #333;
+        }
+        /* Headers */
+        .claude-review-content h1 {
+            color: #1a73e8;
+            font-size: 1.8em;
+            margin: 25px 0 15px 0;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #1a73e8;
+        }
+        .claude-review-content h2 {
+            color: #1a73e8;
+            font-size: 1.4em;
+            margin: 20px 0 12px 0;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #ddd;
+        }
+        .claude-review-content h3 {
+            color: #333;
+            font-size: 1.15em;
+            margin: 18px 0 10px 0;
+        }
+        /* Tables */
+        .claude-review-content table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+            font-size: 0.9em;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .claude-review-content table th {
+            background: linear-gradient(135deg, #1a73e8, #4285f4);
+            color: white;
+            padding: 12px 15px;
+            text-align: left;
+            font-weight: 600;
+        }
+        .claude-review-content table td {
+            padding: 10px 15px;
+            border-bottom: 1px solid #eee;
+        }
+        .claude-review-content table tr:nth-child(even) {
+            background-color: #f8f9fa;
+        }
+        .claude-review-content table tr:hover {
+            background-color: #e8f0fe;
+        }
+        /* Code blocks */
+        .claude-review-content pre {
+            background-color: #1e1e1e;
+            color: #d4d4d4;
+            padding: 15px;
+            border-radius: 6px;
+            overflow-x: auto;
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-size: 0.9em;
+            line-height: 1.5;
+            margin: 15px 0;
+        }
+        .claude-review-content code {
+            background-color: #f1f3f4;
+            color: #d93025;
+            padding: 2px 6px;
             border-radius: 4px;
-            border: 1px solid #dee2e6;
-        }}
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+        .claude-review-content pre code {
+            background-color: transparent;
+            color: inherit;
+            padding: 0;
+        }
+        /* Lists */
+        .claude-review-content ul, .claude-review-content ol {
+            margin: 10px 0 10px 25px;
+        }
+        .claude-review-content li {
+            margin: 6px 0;
+        }
+        /* Blockquotes */
+        .claude-review-content blockquote {
+            border-left: 4px solid #1a73e8;
+            margin: 15px 0;
+            padding: 10px 20px;
+            background-color: #f8f9fa;
+            color: #555;
+        }
+        /* Horizontal rules */
+        .claude-review-content hr {
+            border: none;
+            border-top: 2px solid #eee;
+            margin: 25px 0;
+        }
+        /* Strong/Bold */
+        .claude-review-content strong {
+            color: #1a73e8;
+        }
     </style>
     '''
 
-    # Try to insert before </body> tag
+    # Find the Summary section and insert verdict after it
+    # More flexible pattern to handle various HTML formatting
+    summary_patterns = [
+        r'(<div class="section">\s*<div class="section-header">.*?<h2>Summary</h2>.*?</div>\s*</div>\s*</div>)',
+        r'(<div class="section">.*?<h2>Summary</h2>.*?</div>\s*</div>)',
+    ]
+
+    summary_match = None
+    for pattern in summary_patterns:
+        summary_match = re.search(pattern, html_content, re.DOTALL | re.IGNORECASE)
+        if summary_match:
+            print(f"[DEBUG] Summary section found, inserting verdict after position {summary_match.end()}", flush=True)
+            break
+
+    if summary_match and verdict_section:
+        # Insert verdict section after Summary
+        insert_pos = summary_match.end()
+        html_content = html_content[:insert_pos] + verdict_section + html_content[insert_pos:]
+    elif verdict_section:
+        print("[DEBUG] Summary section not found, verdict will only appear at bottom", flush=True)
+
+    # Insert full Claude review before </body> tag
     if '</body>' in html_content:
-        html_content = html_content.replace('</body>', f'{claude_section}</body>')
+        html_content = html_content.replace('</body>', f'{claude_section}{styles}</body>')
     else:
-        # Append at the end if no body tag
-        html_content += claude_section
+        html_content += claude_section + styles
 
     return html_content
 
@@ -370,6 +637,7 @@ def inject_claude_review(html_content, claude_review):
 def run_claude_cli(prompt_path):
     """Execute Claude CLI with prompt file and return output."""
     import subprocess
+    import os
 
     try:
         # Read prompt content
@@ -378,14 +646,21 @@ def run_claude_cli(prompt_path):
 
         print(f"[DEBUG] Executing Claude CLI with prompt length: {len(prompt_content)}", flush=True)
 
-        # Execute Claude CLI (Windows compatible)
+        # Set environment for UTF-8 encoding on Windows
+        env = os.environ.copy()
+        env['PYTHONIOENCODING'] = 'utf-8'
+
+        # Execute Claude CLI (Windows compatible) with explicit UTF-8 encoding
         result = subprocess.run(
             ['claude', '-p', '--dangerously-skip-permissions'],
             input=prompt_content,
             capture_output=True,
             text=True,
+            encoding='utf-8',
+            errors='replace',
             timeout=300,  # 5 minute timeout
-            shell=True
+            shell=True,
+            env=env
         )
 
         print(f"[DEBUG] Claude CLI return code: {result.returncode}", flush=True)
