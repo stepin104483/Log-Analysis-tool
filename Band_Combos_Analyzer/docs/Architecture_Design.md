@@ -10,6 +10,8 @@ A tool to analyze band filtering from RF Card (RFC) through various configuratio
 
 ## 2. User Interface Design
 
+> **Web UI Documentation**: See [UI_Design.md](./UI_Design.md) for the Flask-based web interface design and implementation details.
+
 Based on reference design: `requirements/Basic_design_Image.jfif`
 
 ```

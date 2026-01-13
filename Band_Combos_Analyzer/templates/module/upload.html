@@ -1,0 +1,242 @@
+{% extends "base.html" %}
+
+{% block title %}{{ module.display_name }} - Upload{% endblock %}
+
+{% block breadcrumb %}
+<a href="{{ url_for('main.index') }}">Home</a>
+<span class="separator">&gt;</span>
+<span>{{ module.display_name }}</span>
+{% endblock %}
+
+{% block content %}
+<div class="upload-page">
+    <div class="page-header">
+        <h2>{{ module.display_name }}</h2>
+        <a href="{{ url_for('main.index') }}" class="btn btn-secondary">
+            &larr; Back
+        </a>
+    </div>
+
+    <p class="module-description">{{ module.description }}</p>
+
+    <form action="{{ url_for('module.analyze', module_id=module.module_id) }}" method="post" enctype="multipart/form-data" class="upload-form" onsubmit="return showLoading()">
+        <!-- Input Documents Section -->
+        <div class="form-section">
+            <h3 class="section-title">Input Documents</h3>
+
+            <div class="simple-upload-area">
+                <label for="input_files" class="upload-label">Select Input Files:</label>
+                <input type="file" id="input_files" name="input_files" multiple
+                       accept=".xml,.txt,.pdf,.png,.jpg,.jpeg,.bin,.hex,.json,.csv" class="file-input-visible">
+                <p class="upload-hint">Hold Ctrl/Cmd to select multiple files</p>
+
+                <div class="selected-files" id="selectedFiles">
+                    <!-- Files will be listed here via JavaScript -->
+                </div>
+            </div>
+
+            {% if module.input_fields %}
+            <div class="file-detection-info">
+                <p><strong>Auto-detection based on filename:</strong></p>
+                <ul class="detection-list">
+                    {% for field in module.input_fields %}
+                    <li><code>{{ field.patterns | join(', ') }}</code> → {{ field.label }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+
+            {% for param in module.parameters %}
+            <div class="form-group mcc-field">
+                <label for="{{ param.name }}">{{ param.label }}{% if not param.required %} (optional){% endif %}</label>
+                {% if param.type == 'text' %}
+                <input type="text" id="{{ param.name }}" name="{{ param.name }}" placeholder="{{ param.placeholder | default('') }}">
+                {% elif param.type == 'checkbox' %}
+                <input type="checkbox" id="{{ param.name }}" name="{{ param.name }}">
+                {% elif param.type == 'select' %}
+                <select id="{{ param.name }}" name="{{ param.name }}">
+                    {% for option in param.options %}
+                    <option value="{{ option.value }}">{{ option.label }}</option>
+                    {% endfor %}
+                </select>
+                {% endif %}
+                {% if param.description %}
+                <small class="form-help">{{ param.description }}</small>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Knowledge Base Library Section -->
+        <div class="form-section">
+            <h3 class="section-title">Knowledge Base Library (for Claude Context)</h3>
+
+            <div class="kb-library">
+                {% if kb_files %}
+                <div class="kb-file-list">
+                    <p class="kb-instruction">Select files to include in analysis:</p>
+                    {% for file in kb_files %}
+                    <div class="kb-file-item">
+                        <label class="kb-checkbox">
+                            <input type="checkbox" name="kb_files" value="{{ file.name }}" checked>
+                            <span class="kb-filename">{{ file.name }}</span>
+                            <span class="kb-filesize">({{ (file.size / 1024)|round(1) }} KB)</span>
+                        </label>
+                        <button type="button" class="btn-delete" title="Delete from library"
+                                onclick="deleteKbFile('{{ file.name }}')">&times;</button>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="kb-empty">No files in library. Upload files below to add them.</p>
+                {% endif %}
+            </div>
+
+            <div class="kb-upload">
+                <p class="kb-label">Add to library:</p>
+                <div class="kb-upload-row">
+                    <input type="file" id="kb_new_files" name="kb_new_files" multiple
+                           accept=".xml,.txt,.pdf,.png,.jpg,.jpeg,.bin,.hex,.json,.csv"
+                           form="kb-upload-form">
+                    <button type="submit" form="kb-upload-form" class="btn btn-secondary">Upload</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-note">
+            <p><strong>Note:</strong> All files are optional. Provide at least one input document.</p>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary btn-large">Analyze</button>
+        </div>
+    </form>
+
+    <!-- Separate form for KB upload -->
+    <form id="kb-upload-form" action="{{ url_for('module.kb_upload') }}" method="post" enctype="multipart/form-data" style="display:none;"></form>
+</div>
+
+<!-- Loading Overlay -->
+<div id="loadingOverlay" class="loading-overlay" style="display: none;">
+    <div class="loading-content">
+        <div class="loading-spinner"></div>
+        <h3 class="loading-title">Analyzing...</h3>
+        <div class="loading-stages">
+            <div class="stage" id="stage1">
+                <span class="stage-icon">○</span>
+                <span class="stage-text">Uploading files...</span>
+            </div>
+            <div class="stage" id="stage2">
+                <span class="stage-icon">○</span>
+                <span class="stage-text">Parsing input documents...</span>
+            </div>
+            <div class="stage" id="stage3">
+                <span class="stage-icon">○</span>
+                <span class="stage-text">Running analysis...</span>
+            </div>
+            <div class="stage" id="stage4">
+                <span class="stage-icon">○</span>
+                <span class="stage-text">Generating report...</span>
+            </div>
+            <div class="stage" id="stage5">
+                <span class="stage-icon">○</span>
+                <span class="stage-text">Finalizing results...</span>
+            </div>
+        </div>
+        <p class="loading-note">Please wait, this may take a moment...</p>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+var fileInput = document.getElementById('input_files');
+var selectedFilesDiv = document.getElementById('selectedFiles');
+var inputFields = {{ module.input_fields | tojson | safe }};
+
+fileInput.addEventListener('change', updateFileList);
+
+function detectFileType(filename) {
+    const lower = filename.toLowerCase();
+
+    for (var i = 0; i < inputFields.length; i++) {
+        var field = inputFields[i];
+        for (var j = 0; j < field.patterns.length; j++) {
+            var pattern = field.patterns[j].toLowerCase();
+            // Simple glob matching
+            var regex = pattern.replace(/\*/g, '.*');
+            if (new RegExp('^' + regex + '$').test(lower)) {
+                return field.label;
+            }
+        }
+    }
+    return 'Unknown';
+}
+
+function updateFileList() {
+    selectedFilesDiv.innerHTML = '';
+
+    if (!fileInput.files || fileInput.files.length === 0) {
+        return;
+    }
+
+    var list = document.createElement('div');
+    list.className = 'file-list';
+
+    var header = document.createElement('p');
+    header.className = 'file-list-header';
+    header.textContent = 'Selected ' + fileInput.files.length + ' file(s):';
+    list.appendChild(header);
+
+    for (var i = 0; i < fileInput.files.length; i++) {
+        var file = fileInput.files[i];
+        var item = document.createElement('div');
+        item.className = 'file-list-item';
+
+        var detected = detectFileType(file.name);
+        var typeClass = detected !== 'Unknown' ? 'detected' : 'unknown';
+
+        item.innerHTML = '<span class="file-name">' + file.name + '</span>' +
+                         '<span class="file-type ' + typeClass + '">' + detected + '</span>';
+        list.appendChild(item);
+    }
+
+    selectedFilesDiv.appendChild(list);
+}
+
+function deleteKbFile(filename) {
+    if (confirm('Delete "' + filename + '" from library?')) {
+        var form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '/module/kb/delete/' + encodeURIComponent(filename);
+        document.body.appendChild(form);
+        form.submit();
+    }
+}
+
+function showLoading() {
+    document.getElementById('loadingOverlay').style.display = 'flex';
+
+    var delays = [0, 1500, 3000, 5000, 7000];
+    for (var i = 1; i <= 5; i++) {
+        (function(stageNum, delay) {
+            setTimeout(function() {
+                var stage = document.getElementById('stage' + stageNum);
+                if (stage) {
+                    stage.classList.add('active');
+                    stage.querySelector('.stage-icon').textContent = '●';
+                }
+            }, delay);
+        })(i, delays[i-1]);
+    }
+
+    return true;
+}
+
+window.addEventListener('pageshow', function(event) {
+    if (event.persisted) {
+        document.getElementById('loadingOverlay').style.display = 'none';
+    }
+});
+</script>
+{% endblock %}

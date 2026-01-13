@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+
+{% block title %}{{ module.display_name }} - Coming Soon{% endblock %}
+
+{% block breadcrumb %}
+<a href="{{ url_for('main.index') }}">Home</a>
+<span class="separator">&gt;</span>
+<span>{{ module.display_name }}</span>
+{% endblock %}
+
+{% block content %}
+<div class="coming-soon-page">
+    <div class="coming-soon-card">
+        <div class="coming-soon-icon">
+            <span class="icon-placeholder">{{ module.icon | default('⏳') }}</span>
+        </div>
+        <h2>{{ module.display_name }}</h2>
+        <p class="module-description">{{ module.description }}</p>
+        <div class="coming-soon-badge">Coming Soon</div>
+        <p class="coming-soon-text">
+            This module is currently under development.<br>
+            Check back later for updates!
+        </p>
+        <a href="{{ url_for('main.index') }}" class="btn btn-secondary">
+            &larr; Back to Dashboard
+        </a>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.coming-soon-page {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 60vh;
+    padding: 40px 20px;
+}
+
+.coming-soon-card {
+    background: white;
+    border-radius: 12px;
+    padding: 50px;
+    text-align: center;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    max-width: 500px;
+}
+
+.coming-soon-icon {
+    font-size: 4rem;
+    margin-bottom: 20px;
+}
+
+.coming-soon-card h2 {
+    color: var(--primary-color);
+    margin-bottom: 10px;
+}
+
+.module-description {
+    color: var(--text-muted);
+    margin-bottom: 20px;
+}
+
+.coming-soon-badge {
+    display: inline-block;
+    background: linear-gradient(135deg, #ffc107, #fd7e14);
+    color: white;
+    padding: 8px 20px;
+    border-radius: 20px;
+    font-weight: bold;
+    margin-bottom: 20px;
+}
+
+.coming-soon-text {
+    color: var(--text-muted);
+    margin-bottom: 30px;
+    line-height: 1.6;
+}
+</style>
+{% endblock %}

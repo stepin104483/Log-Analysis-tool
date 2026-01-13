@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+
+{% block title %}{{ module.display_name }} - AI Review{% endblock %}
+
+{% block breadcrumb %}
+<a href="{{ url_for('main.index') }}">Home</a>
+<span class="separator">&gt;</span>
+<a href="{{ url_for('module.upload', module_id=module.module_id) }}">{{ module.display_name }}</a>
+<span class="separator">&gt;</span>
+<span>AI Review</span>
+{% endblock %}
+
+{% block content %}
+<div class="results-page">
+    <div class="page-header">
+        <h2>AI Expert Review Complete</h2>
+        <div class="header-actions">
+            <a href="{{ url_for('module.upload', module_id=module.module_id) }}" class="btn btn-secondary">
+                &larr; New Analysis
+            </a>
+            <a href="{{ url_for('module.download', filename=final_report) }}" class="btn btn-primary">
+                Download Final Report (HTML)
+            </a>
+        </div>
+    </div>
+
+    <!-- Stage 2: AI Expert Review -->
+    <div class="results-section">
+        <h3 class="section-title">Stage 2: Claude AI Expert Review</h3>
+        <div class="ai-review-container">
+            <pre class="ai-review-output">{{ claude_review }}</pre>
+        </div>
+    </div>
+
+    <div class="download-section">
+        <p class="download-note">The final HTML report includes both Stage 1 (Automated Analysis) and Stage 2 (AI Expert Review).</p>
+        <a href="{{ url_for('module.download', filename=final_report) }}" class="btn btn-primary btn-large">
+            Download Final Report
+        </a>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.ai-review-container {
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 20px;
+    margin-top: 15px;
+    max-height: 600px;
+    overflow-y: auto;
+}
+
+.ai-review-output {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+    margin: 0;
+    color: #333;
+}
+
+.download-section {
+    margin-top: 30px;
+    padding: 20px;
+    background-color: #e8f4f8;
+    border-radius: 8px;
+    text-align: center;
+}
+
+.download-note {
+    margin-bottom: 15px;
+    color: #555;
+}
+</style>
+{% endblock %}
