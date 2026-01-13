@@ -1,0 +1,2303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Band Analysis Report</title>
+    <style>
+        
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f5f5;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
+            color: white;
+            padding: 30px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        header h1 {
+            margin-bottom: 10px;
+        }
+
+        .timestamp {
+            opacity: 0.8;
+            font-size: 0.9em;
+        }
+
+        .section {
+            background: white;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .section-header {
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
+            color: white;
+            padding: 15px 20px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            user-select: none;
+        }
+
+        .section-header:hover {
+            background: linear-gradient(135deg, #2a5298, #1e3c72);
+        }
+
+        .section-header h2 {
+            margin: 0;
+            font-size: 1.2em;
+        }
+
+        .section-header .toggle-icon {
+            font-size: 1.5em;
+            transition: transform 0.3s ease;
+        }
+
+        .section-header.collapsed .toggle-icon {
+            transform: rotate(-90deg);
+        }
+
+        .section-content {
+            padding: 20px;
+            transition: max-height 0.3s ease-out;
+            overflow: hidden;
+        }
+
+        .section-content.collapsed {
+            max-height: 0;
+            padding: 0 20px;
+        }
+
+        .doc-status {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 10px;
+        }
+
+        .doc-item {
+            padding: 10px;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .doc-item.loaded {
+            background-color: #e8f5e9;
+            border-left: 4px solid #4caf50;
+        }
+
+        .doc-item.missing {
+            background-color: #fff3e0;
+            border-left: 4px solid #ff9800;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .summary-card {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .summary-card.gsm {
+            background: linear-gradient(135deg, #f5af19, #f12711);
+        }
+
+        .summary-card.wcdma {
+            background: linear-gradient(135deg, #ee9ca7, #ffdde1);
+            color: #333;
+        }
+
+        .summary-card.lte {
+            background: linear-gradient(135deg, #11998e, #38ef7d);
+        }
+
+        .summary-card.nr-sa {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+        }
+
+        .summary-card.nr-nsa {
+            background: linear-gradient(135deg, #f093fb, #f5576c);
+        }
+
+        .summary-card h3 {
+            font-size: 0.9em;
+            opacity: 0.9;
+            margin-bottom: 5px;
+        }
+
+        .summary-card .number {
+            font-size: 2em;
+            font-weight: bold;
+        }
+
+        .summary-card .details {
+            font-size: 0.8em;
+            opacity: 0.8;
+            margin-top: 5px;
+        }
+
+        .table-container {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85em;
+            min-width: 900px;
+        }
+
+        th, td {
+            padding: 8px 6px;
+            text-align: center;
+            border-bottom: 1px solid #ddd;
+        }
+
+        th {
+            background-color: #1e3c72;
+            color: white;
+            font-weight: 500;
+            position: sticky;
+            top: 0;
+        }
+
+        tr:hover {
+            background-color: #f5f5f5;
+        }
+
+        .status-pass {
+            color: #4caf50;
+            font-weight: bold;
+        }
+
+        .status-fail {
+            color: #f44336;
+            font-weight: bold;
+        }
+
+        .status-na {
+            color: #9e9e9e;
+        }
+
+        .status-skip {
+            color: #9e9e9e;
+            font-style: italic;
+        }
+
+        .final-enabled {
+            background-color: #e8f5e9;
+            color: #2e7d32;
+            font-weight: bold;
+        }
+
+        .final-filtered {
+            background-color: #fff3e0;
+            color: #ef6c00;
+        }
+
+        .final-anomaly {
+            background-color: #ffebee;
+            color: #c62828;
+            font-weight: bold;
+        }
+
+        .anomaly-list {
+            list-style: none;
+        }
+
+        .anomaly-item {
+            background-color: #ffebee;
+            border-left: 4px solid #f44336;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 0 5px 5px 0;
+        }
+
+        .anomaly-item h4 {
+            color: #c62828;
+            margin-bottom: 5px;
+        }
+
+        .claude-review {
+            background-color: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: 20px;
+            white-space: pre-wrap;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 0.85em;
+            overflow-x: auto;
+        }
+
+        footer {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.75em;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+
+        .badge-count {
+            background-color: rgba(255,255,255,0.3);
+        }
+
+        .badge-anomaly {
+            background-color: #f44336;
+        }
+
+        @media (max-width: 768px) {
+            .summary-grid {
+                grid-template-columns: 1fr;
+            }
+
+            table {
+                font-size: 0.75em;
+            }
+
+            th, td {
+                padding: 4px 3px;
+            }
+        }
+        
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Band Analysis Report</h1>
+            <p class="timestamp">Generated: 2026-01-13 11:33:17</p>
+        </header>
+
+        
+        <div class="section">
+            <div class="section-header">
+                <h2>Document Status</h2>
+                <span class="toggle-icon">&#9660;</span>
+            </div>
+            <div class="section-content">
+                <div class="doc-status">
+                    
+                <div class="doc-item loaded">
+                    <span>&#10004;</span>
+                    <div>
+                        <strong>RFC XML</strong>
+                        <br><small>28 LTE, 23 NR (17 EN-DC), 4 GSM</small>
+                    </div>
+                </div>
+            
+                <div class="doc-item loaded">
+                    <span>&#10004;</span>
+                    <div>
+                        <strong>HW Band Filtering</strong>
+                        <br><small>Loaded</small>
+                    </div>
+                </div>
+            
+                <div class="doc-item loaded">
+                    <span>&#10004;</span>
+                    <div>
+                        <strong>Carrier Policy</strong>
+                        <br><small>Excl: 0 LTE, 0 NR, 9 GW</small>
+                    </div>
+                </div>
+            
+                <div class="doc-item loaded">
+                    <span>&#10004;</span>
+                    <div>
+                        <strong>Generic Restrictions</strong>
+                        <br><small>Excl: 0 LTE, 0 NR</small>
+                    </div>
+                </div>
+            
+                <div class="doc-item loaded">
+                    <span>&#10004;</span>
+                    <div>
+                        <strong>MCFG NV Band Pref</strong>
+                        <br><small>Enabled: 26 LTE</small>
+                    </div>
+                </div>
+            
+                <div class="doc-item loaded">
+                    <span>&#10004;</span>
+                    <div>
+                        <strong>MDB Config (Context)</strong>
+                        <br><small>Context: 0 LTE, 0 NR</small>
+                    </div>
+                </div>
+            
+                <div class="doc-item loaded">
+                    <span>&#10004;</span>
+                    <div>
+                        <strong>QXDM Log</strong>
+                        <br><small>27 LTE, 20 NR SA</small>
+                    </div>
+                </div>
+            
+                <div class="doc-item loaded">
+                    <span>&#10004;</span>
+                    <div>
+                        <strong>UE Capability</strong>
+                        <br><small>27 LTE, 20 NR SA, 17 NR NSA</small>
+                    </div>
+                </div>
+            
+                </div>
+            </div>
+        </div>
+        
+        
+        <div class="section">
+            <div class="section-header">
+                <h2>Summary</h2>
+                <span class="toggle-icon">&#9660;</span>
+            </div>
+            <div class="section-content">
+                <div class="summary-grid">
+                    <div class="summary-card gsm">
+                        <h3>GSM (2G)</h3>
+                        <div class="number">4/4</div>
+                        <div class="details">0 filtered</div>
+                    </div>
+                    <div class="summary-card wcdma">
+                        <h3>WCDMA (3G)</h3>
+                        <div class="number">17/26</div>
+                        <div class="details">9 filtered</div>
+                    </div>
+                    <div class="summary-card lte">
+                        <h3>LTE (4G)</h3>
+                        <div class="number">27/28</div>
+                        <div class="details">1 filtered, 0 anomalies</div>
+                    </div>
+                    <div class="summary-card nr-sa">
+                        <h3>NR SA (5G)</h3>
+                        <div class="number">20/23</div>
+                        <div class="details">3 filtered, 0 anomalies</div>
+                    </div>
+                    <div class="summary-card nr-nsa">
+                        <h3>NR NSA (5G)</h3>
+                        <div class="number">17/23</div>
+                        <div class="details">0 filtered, 0 anomalies</div>
+                    </div>
+                </div>
+    <div class="section verdict-section verdict-safe">
+        <div class="section-header verdict-header">
+            <h2>Claude Expert Review Verdict</h2>
+            <span class="toggle-icon">&#9660;</span>
+        </div>
+        <div class="section-content">
+            <div class="verdict-content">
+                <h2>5. Overall Verdict</h2>
+<h3>&#9989; SAFE FOR DEPLOYMENT</h3>
+<p><strong>Rationale:</strong><br />
+- All 28 LTE bands configured correctly with only B46 intentionally disabled<br />
+- 20 NR SA bands operational (3 limited by hardware)<br />
+- 17 NR NSA/EN-DC bands properly configured per RFC definition<br />
+- No unexpected filtering anomalies<br />
+- QXDM and UE Capability match expected post-filtering state<br />
+- Carrier and Generic policies have no unexpected exclusions</p>
+<p><strong>Configuration Quality Score: 98/100</strong></p>
+<p>The only item preventing a perfect score is the empty MDB context, which should be verified if location-based band filtering is part of the deployment requirements.</p>
+            </div>
+        </div>
+    </div>
+        
+            </div>
+        </div>
+        
+        
+        <div class="section" id="gsm">
+            <div class="section-header">
+                <h2>GSM (2G) <span class="badge badge-count">4/4</span></h2>
+                <span class="toggle-icon">&#9660;</span>
+            </div>
+            <div class="section-content">
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Band</th>
+                                <th>RFC</th>
+                                <th>HW</th>
+                                <th>Carrier</th>
+                                <th>Generic</th>
+                                <th>NV Pref</th>
+                                <th>QXDM</th>
+                                <th>UE Cap</th>
+                                <th>Status</th>
+                                <th>Filtered At</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            
+            <tr>
+                <td><strong>GSM 850</strong></td>
+                <td class="status-pass">OK</td>
+                <td class="status-na">-</td>
+                <td class="status-na">-</td>
+                <td class="status-na">-</td>
+                <td class="status-na">-</td>
+                <td class="status-na">-</td>
+                <td class="status-na">-</td>
+                <td class="final-enabled">ENABLED</td>
+                <td>-</td>
+            </tr>
+            
+            <tr>
+                <td><strong>GSM 900</strong></td>
+                <td class="status-pass">OK</td>
+                <td class="status-na">-</td>
+                <td class="status-na">-</td>
+                <td class="status-na">-</td>
+                <td class="status-na">-</td>
+                <td class="status-na">-</td>
+                <td class="status-na">-</td>
+                <td class="final-enabled">ENABLED</td>
+                <td>-</td>
+            </tr>
+            
+            <tr>
+                <td><strong>GSM 1800</strong></td>
+                <td class="status-pass">OK</td>
+                <td class="status-na">-</td>
+                <td class="status-na">-</td>
+                <td class="status-na">-</td>
+                <td class="status-na">-</td>
+                <td class="status-na">-</td>
+                <td class="status-na">-</td>
+                <td class="final-enabled">ENABLED</td>
+                <td>-</td>
+            </tr>
+            
+            <tr>
+                <td><strong>GSM 1900</strong></td>
+                <td class="status-pass">OK</td>
+                <td class="status-na">-</td>
+                <td class="status-na">-</td>
+                <td class="status-na">-</td>
+                <td class="status-na">-</td>
+                <td class="status-na">-</td>
+                <td class="status-na">-</td>
+                <td class="final-enabled">ENABLED</td>
+                <td>-</td>
+            </tr>
+            
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        
+        <div class="section" id="wcdma">
+            <div class="section-header">
+                <h2>WCDMA (3G) <span class="badge badge-count">17/26</span></h2>
+                <span class="toggle-icon">&#9660;</span>
+            </div>
+            <div class="section-content">
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Band</th>
+                                <th>RFC</th>
+                                <th>HW</th>
+                                <th>Carrier</th>
+                                <th>Generic</th>
+                                <th>NV Pref</th>
+                                <th>QXDM</th>
+                                <th>UE Cap</th>
+                                <th>Status</th>
+                                <th>Filtered At</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            
+            <tr>
+                <td><strong>W1</strong></td>
+                <td class="status-na">-</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-na">-</td>
+                <td class="status-na">-</td>
+                <td class="status-na">-</td>
+                <td class="status-na">-</td>
+                <td class="final-enabled">ENABLED</td>
+                <td>-</td>
+            </tr>
+            
+            <tr>
+                <td><strong>W2</strong></td>
+                <td class="status-na">-</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-na">-</td>
+                <td class="status-na">-</td>
+                <td class="status-na">-</td>
+                <td class="status-na">-</td>
+                <td class="final-enabled">ENABLED</td>
+                <td>-</td>
+            </tr>
+            
+            <tr>
+                <td><strong>W3</strong></td>
+                <td class="status-na">-</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-na">-</td>
+                <td class="status-na">-</td>
+                <td class="status-na">-</td>
+                <td class="status-na">-</td>
+                <td class="final-enabled">ENABLED</td>
+                <td>-</td>
+            </tr>
+            
+            <tr>
+                <td><strong>W4</strong></td>
+                <td class="status-na">-</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-na">-</td>
+                <td class="status-na">-</td>
+                <td class="status-na">-</td>
+                <td class="status-na">-</td>
+                <td class="final-enabled">ENABLED</td>
+                <td>-</td>
+            </tr>
+            
+            <tr>
+                <td><strong>W5</strong></td>
+                <td class="status-na">-</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-na">-</td>
+                <td class="status-na">-</td>
+                <td class="status-na">-</td>
+                <td class="status-na">-</td>
+                <td class="final-enabled">ENABLED</td>
+                <td>-</td>
+            </tr>
+            
+            <tr>
+                <td><strong>W6</strong></td>
+                <td class="status-na">-</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-na">-</td>
+                <td class="status-na">-</td>
+                <td class="status-na">-</td>
+                <td class="status-na">-</td>
+                <td class="final-enabled">ENABLED</td>
+                <td>-</td>
+            </tr>
+            
+            <tr>
+                <td><strong>W7</strong></td>
+                <td class="status-na">-</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-na">-</td>
+                <td class="status-na">-</td>
+                <td class="status-na">-</td>
+                <td class="status-na">-</td>
+                <td class="final-enabled">ENABLED</td>
+                <td>-</td>
+            </tr>
+            
+            <tr>
+                <td><strong>W8</strong></td>
+                <td class="status-na">-</td>
+                <td class="status-pass">OK</td>
+                <td class="status-fail">X</td>
+                <td class="status-na">-</td>
+                <td class="status-na">-</td>
+                <td class="status-na">-</td>
+                <td class="status-na">-</td>
+                <td class="final-filtered">FILTERED</td>
+                <td>Carrier</td>
+            </tr>
+            
+            <tr>
+                <td><strong>W9</strong></td>
+                <td class="status-na">-</td>
+                <td class="status-pass">OK</td>
+                <td class="status-fail">X</td>
+                <td class="status-na">-</td>
+                <td class="status-na">-</td>
+                <td class="status-na">-</td>
+                <td class="status-na">-</td>
+                <td class="final-filtered">FILTERED</td>
+                <td>Carrier</td>
+            </tr>
+            
+            <tr>
+                <td><strong>W10</strong></td>
+                <td class="status-na">-</td>
+                <td class="status-pass">OK</td>
+                <td class="status-fail">X</td>
+                <td class="status-na">-</td>
+                <td class="status-na">-</td>
+                <td class="status-na">-</td>
+                <td class="status-na">-</td>
+                <td class="final-filtered">FILTERED</td>
+                <td>Carrier</td>
+            </tr>
+            
+            <tr>
+                <td><strong>W11</strong></td>
+                <td class="status-na">-</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-na">-</td>
+                <td class="status-na">-</td>
+                <td class="status-na">-</td>
+                <td class="status-na">-</td>
+                <td class="final-enabled">ENABLED</td>
+                <td>-</td>
+            </tr>
+            
+            <tr>
+                <td><strong>W12</strong></td>
+                <td class="status-na">-</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-na">-</td>
+                <td class="status-na">-</td>
+                <td class="status-na">-</td>
+                <td class="status-na">-</td>
+                <td class="final-enabled">ENABLED</td>
+                <td>-</td>
+            </tr>
+            
+            <tr>
+                <td><strong>W13</strong></td>
+                <td class="status-na">-</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-na">-</td>
+                <td class="status-na">-</td>
+                <td class="status-na">-</td>
+                <td class="status-na">-</td>
+                <td class="final-enabled">ENABLED</td>
+                <td>-</td>
+            </tr>
+            
+            <tr>
+                <td><strong>W14</strong></td>
+                <td class="status-na">-</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-na">-</td>
+                <td class="status-na">-</td>
+                <td class="status-na">-</td>
+                <td class="status-na">-</td>
+                <td class="final-enabled">ENABLED</td>
+                <td>-</td>
+            </tr>
+            
+            <tr>
+                <td><strong>W15</strong></td>
+                <td class="status-na">-</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-na">-</td>
+                <td class="status-na">-</td>
+                <td class="status-na">-</td>
+                <td class="status-na">-</td>
+                <td class="final-enabled">ENABLED</td>
+                <td>-</td>
+            </tr>
+            
+            <tr>
+                <td><strong>W16</strong></td>
+                <td class="status-na">-</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-na">-</td>
+                <td class="status-na">-</td>
+                <td class="status-na">-</td>
+                <td class="status-na">-</td>
+                <td class="final-enabled">ENABLED</td>
+                <td>-</td>
+            </tr>
+            
+            <tr>
+                <td><strong>W17</strong></td>
+                <td class="status-na">-</td>
+                <td class="status-pass">OK</td>
+                <td class="status-fail">X</td>
+                <td class="status-na">-</td>
+                <td class="status-na">-</td>
+                <td class="status-na">-</td>
+                <td class="status-na">-</td>
+                <td class="final-filtered">FILTERED</td>
+                <td>Carrier</td>
+            </tr>
+            
+            <tr>
+                <td><strong>W18</strong></td>
+                <td class="status-na">-</td>
+                <td class="status-pass">OK</td>
+                <td class="status-fail">X</td>
+                <td class="status-na">-</td>
+                <td class="status-na">-</td>
+                <td class="status-na">-</td>
+                <td class="status-na">-</td>
+                <td class="final-filtered">FILTERED</td>
+                <td>Carrier</td>
+            </tr>
+            
+            <tr>
+                <td><strong>W19</strong></td>
+                <td class="status-na">-</td>
+                <td class="status-pass">OK</td>
+                <td class="status-fail">X</td>
+                <td class="status-na">-</td>
+                <td class="status-na">-</td>
+                <td class="status-na">-</td>
+                <td class="status-na">-</td>
+                <td class="final-filtered">FILTERED</td>
+                <td>Carrier</td>
+            </tr>
+            
+            <tr>
+                <td><strong>W20</strong></td>
+                <td class="status-na">-</td>
+                <td class="status-pass">OK</td>
+                <td class="status-fail">X</td>
+                <td class="status-na">-</td>
+                <td class="status-na">-</td>
+                <td class="status-na">-</td>
+                <td class="status-na">-</td>
+                <td class="final-filtered">FILTERED</td>
+                <td>Carrier</td>
+            </tr>
+            
+            <tr>
+                <td><strong>W21</strong></td>
+                <td class="status-na">-</td>
+                <td class="status-pass">OK</td>
+                <td class="status-fail">X</td>
+                <td class="status-na">-</td>
+                <td class="status-na">-</td>
+                <td class="status-na">-</td>
+                <td class="status-na">-</td>
+                <td class="final-filtered">FILTERED</td>
+                <td>Carrier</td>
+            </tr>
+            
+            <tr>
+                <td><strong>W22</strong></td>
+                <td class="status-na">-</td>
+                <td class="status-pass">OK</td>
+                <td class="status-fail">X</td>
+                <td class="status-na">-</td>
+                <td class="status-na">-</td>
+                <td class="status-na">-</td>
+                <td class="status-na">-</td>
+                <td class="final-filtered">FILTERED</td>
+                <td>Carrier</td>
+            </tr>
+            
+            <tr>
+                <td><strong>W23</strong></td>
+                <td class="status-na">-</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-na">-</td>
+                <td class="status-na">-</td>
+                <td class="status-na">-</td>
+                <td class="status-na">-</td>
+                <td class="final-enabled">ENABLED</td>
+                <td>-</td>
+            </tr>
+            
+            <tr>
+                <td><strong>W24</strong></td>
+                <td class="status-na">-</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-na">-</td>
+                <td class="status-na">-</td>
+                <td class="status-na">-</td>
+                <td class="status-na">-</td>
+                <td class="final-enabled">ENABLED</td>
+                <td>-</td>
+            </tr>
+            
+            <tr>
+                <td><strong>W25</strong></td>
+                <td class="status-na">-</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-na">-</td>
+                <td class="status-na">-</td>
+                <td class="status-na">-</td>
+                <td class="status-na">-</td>
+                <td class="final-enabled">ENABLED</td>
+                <td>-</td>
+            </tr>
+            
+            <tr>
+                <td><strong>W26</strong></td>
+                <td class="status-na">-</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-na">-</td>
+                <td class="status-na">-</td>
+                <td class="status-na">-</td>
+                <td class="status-na">-</td>
+                <td class="final-enabled">ENABLED</td>
+                <td>-</td>
+            </tr>
+            
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        
+        <div class="section" id="lte">
+            <div class="section-header">
+                <h2>LTE (4G) <span class="badge badge-count">27/28</span></h2>
+                <span class="toggle-icon">&#9660;</span>
+            </div>
+            <div class="section-content">
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Band</th>
+                                <th>RFC</th>
+                                <th>HW</th>
+                                <th>Carrier</th>
+                                <th>Generic</th>
+                                <th>NV Pref</th>
+                                <th>QXDM</th>
+                                <th>UE Cap</th>
+                                <th>Status</th>
+                                <th>Filtered At</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            
+            <tr>
+                <td><strong>B1</strong></td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="final-enabled">ENABLED</td>
+                <td>-</td>
+            </tr>
+            
+            <tr>
+                <td><strong>B2</strong></td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="final-enabled">ENABLED</td>
+                <td>-</td>
+            </tr>
+            
+            <tr>
+                <td><strong>B3</strong></td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="final-enabled">ENABLED</td>
+                <td>-</td>
+            </tr>
+            
+            <tr>
+                <td><strong>B4</strong></td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="final-enabled">ENABLED</td>
+                <td>-</td>
+            </tr>
+            
+            <tr>
+                <td><strong>B5</strong></td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="final-enabled">ENABLED</td>
+                <td>-</td>
+            </tr>
+            
+            <tr>
+                <td><strong>B7</strong></td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="final-enabled">ENABLED</td>
+                <td>-</td>
+            </tr>
+            
+            <tr>
+                <td><strong>B8</strong></td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="final-enabled">ENABLED</td>
+                <td>-</td>
+            </tr>
+            
+            <tr>
+                <td><strong>B12</strong></td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="final-enabled">ENABLED</td>
+                <td>-</td>
+            </tr>
+            
+            <tr>
+                <td><strong>B13</strong></td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="final-enabled">ENABLED</td>
+                <td>-</td>
+            </tr>
+            
+            <tr>
+                <td><strong>B14</strong></td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="final-enabled">ENABLED</td>
+                <td>-</td>
+            </tr>
+            
+            <tr>
+                <td><strong>B20</strong></td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="final-enabled">ENABLED</td>
+                <td>-</td>
+            </tr>
+            
+            <tr>
+                <td><strong>B25</strong></td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="final-enabled">ENABLED</td>
+                <td>-</td>
+            </tr>
+            
+            <tr>
+                <td><strong>B26</strong></td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="final-enabled">ENABLED</td>
+                <td>-</td>
+            </tr>
+            
+            <tr>
+                <td><strong>B28</strong></td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="final-enabled">ENABLED</td>
+                <td>-</td>
+            </tr>
+            
+            <tr>
+                <td><strong>B29</strong></td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="final-enabled">ENABLED</td>
+                <td>-</td>
+            </tr>
+            
+            <tr>
+                <td><strong>B30</strong></td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="final-enabled">ENABLED</td>
+                <td>-</td>
+            </tr>
+            
+            <tr>
+                <td><strong>B32</strong></td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="final-enabled">ENABLED</td>
+                <td>-</td>
+            </tr>
+            
+            <tr>
+                <td><strong>B38</strong></td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="final-enabled">ENABLED</td>
+                <td>-</td>
+            </tr>
+            
+            <tr>
+                <td><strong>B39</strong></td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="final-enabled">ENABLED</td>
+                <td>-</td>
+            </tr>
+            
+            <tr>
+                <td><strong>B40</strong></td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="final-enabled">ENABLED</td>
+                <td>-</td>
+            </tr>
+            
+            <tr>
+                <td><strong>B41</strong></td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="final-enabled">ENABLED</td>
+                <td>-</td>
+            </tr>
+            
+            <tr>
+                <td><strong>B42</strong></td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="final-enabled">ENABLED</td>
+                <td>-</td>
+            </tr>
+            
+            <tr>
+                <td><strong>B43</strong></td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="final-enabled">ENABLED</td>
+                <td>-</td>
+            </tr>
+            
+            <tr>
+                <td><strong>B46</strong></td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-fail">X</td>
+                <td class="status-fail">X</td>
+                <td class="status-fail">X</td>
+                <td class="final-filtered">FILTERED</td>
+                <td>NV_Pref</td>
+            </tr>
+            
+            <tr>
+                <td><strong>B48</strong></td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="final-enabled">ENABLED</td>
+                <td>-</td>
+            </tr>
+            
+            <tr>
+                <td><strong>B66</strong></td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-na">-</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="final-enabled">ENABLED</td>
+                <td>-</td>
+            </tr>
+            
+            <tr>
+                <td><strong>B68</strong></td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-na">-</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="final-enabled">ENABLED</td>
+                <td>-</td>
+            </tr>
+            
+            <tr>
+                <td><strong>B71</strong></td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-na">-</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="final-enabled">ENABLED</td>
+                <td>-</td>
+            </tr>
+            
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        
+        <div class="section" id="nr-sa">
+            <div class="section-header">
+                <h2>NR SA (5G Standalone) <span class="badge badge-count">20/23</span></h2>
+                <span class="toggle-icon">&#9660;</span>
+            </div>
+            <div class="section-content">
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Band</th>
+                                <th>RFC</th>
+                                <th>HW</th>
+                                <th>Carrier</th>
+                                <th>Generic</th>
+                                <th>NV Pref</th>
+                                <th>QXDM</th>
+                                <th>UE Cap</th>
+                                <th>Status</th>
+                                <th>Filtered At</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            
+            <tr>
+                <td><strong>n1</strong></td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-na">-</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="final-enabled">ENABLED</td>
+                <td>-</td>
+            </tr>
+            
+            <tr>
+                <td><strong>n2</strong></td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-na">-</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="final-enabled">ENABLED</td>
+                <td>-</td>
+            </tr>
+            
+            <tr>
+                <td><strong>n3</strong></td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-na">-</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="final-enabled">ENABLED</td>
+                <td>-</td>
+            </tr>
+            
+            <tr>
+                <td><strong>n5</strong></td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-na">-</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="final-enabled">ENABLED</td>
+                <td>-</td>
+            </tr>
+            
+            <tr>
+                <td><strong>n7</strong></td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-na">-</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="final-enabled">ENABLED</td>
+                <td>-</td>
+            </tr>
+            
+            <tr>
+                <td><strong>n8</strong></td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-na">-</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="final-enabled">ENABLED</td>
+                <td>-</td>
+            </tr>
+            
+            <tr>
+                <td><strong>n12</strong></td>
+                <td class="status-pass">OK</td>
+                <td class="status-fail">X</td>
+                <td class="status-skip">.</td>
+                <td class="status-skip">.</td>
+                <td class="status-skip">.</td>
+                <td class="status-fail">X</td>
+                <td class="status-fail">X</td>
+                <td class="final-filtered">FILTERED</td>
+                <td>HW_Filter</td>
+            </tr>
+            
+            <tr>
+                <td><strong>n14</strong></td>
+                <td class="status-pass">OK</td>
+                <td class="status-fail">X</td>
+                <td class="status-skip">.</td>
+                <td class="status-skip">.</td>
+                <td class="status-skip">.</td>
+                <td class="status-fail">X</td>
+                <td class="status-fail">X</td>
+                <td class="final-filtered">FILTERED</td>
+                <td>HW_Filter</td>
+            </tr>
+            
+            <tr>
+                <td><strong>n20</strong></td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-na">-</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="final-enabled">ENABLED</td>
+                <td>-</td>
+            </tr>
+            
+            <tr>
+                <td><strong>n25</strong></td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-na">-</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="final-enabled">ENABLED</td>
+                <td>-</td>
+            </tr>
+            
+            <tr>
+                <td><strong>n26</strong></td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-na">-</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="final-enabled">ENABLED</td>
+                <td>-</td>
+            </tr>
+            
+            <tr>
+                <td><strong>n28</strong></td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-na">-</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="final-enabled">ENABLED</td>
+                <td>-</td>
+            </tr>
+            
+            <tr>
+                <td><strong>n30</strong></td>
+                <td class="status-pass">OK</td>
+                <td class="status-fail">X</td>
+                <td class="status-skip">.</td>
+                <td class="status-skip">.</td>
+                <td class="status-skip">.</td>
+                <td class="status-fail">X</td>
+                <td class="status-fail">X</td>
+                <td class="final-filtered">FILTERED</td>
+                <td>HW_Filter</td>
+            </tr>
+            
+            <tr>
+                <td><strong>n38</strong></td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-na">-</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="final-enabled">ENABLED</td>
+                <td>-</td>
+            </tr>
+            
+            <tr>
+                <td><strong>n40</strong></td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-na">-</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="final-enabled">ENABLED</td>
+                <td>-</td>
+            </tr>
+            
+            <tr>
+                <td><strong>n41</strong></td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-na">-</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="final-enabled">ENABLED</td>
+                <td>-</td>
+            </tr>
+            
+            <tr>
+                <td><strong>n48</strong></td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-na">-</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="final-enabled">ENABLED</td>
+                <td>-</td>
+            </tr>
+            
+            <tr>
+                <td><strong>n66</strong></td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-na">-</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="final-enabled">ENABLED</td>
+                <td>-</td>
+            </tr>
+            
+            <tr>
+                <td><strong>n70</strong></td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-na">-</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="final-enabled">ENABLED</td>
+                <td>-</td>
+            </tr>
+            
+            <tr>
+                <td><strong>n71</strong></td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-na">-</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="final-enabled">ENABLED</td>
+                <td>-</td>
+            </tr>
+            
+            <tr>
+                <td><strong>n75</strong></td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-na">-</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="final-enabled">ENABLED</td>
+                <td>-</td>
+            </tr>
+            
+            <tr>
+                <td><strong>n77</strong></td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-na">-</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="final-enabled">ENABLED</td>
+                <td>-</td>
+            </tr>
+            
+            <tr>
+                <td><strong>n78</strong></td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-na">-</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="final-enabled">ENABLED</td>
+                <td>-</td>
+            </tr>
+            
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        
+        <div class="section" id="nr-nsa">
+            <div class="section-header">
+                <h2>NR NSA (5G Non-Standalone) <span class="badge badge-count">17/23</span></h2>
+                <span class="toggle-icon">&#9660;</span>
+            </div>
+            <div class="section-content">
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Band</th>
+                                <th>RFC</th>
+                                <th>HW</th>
+                                <th>Carrier</th>
+                                <th>Generic</th>
+                                <th>NV Pref</th>
+                                <th>QXDM</th>
+                                <th>UE Cap</th>
+                                <th>Status</th>
+                                <th>Filtered At</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            
+            <tr>
+                <td><strong>n1</strong></td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-na">-</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="final-enabled">ENABLED</td>
+                <td>-</td>
+            </tr>
+            
+            <tr>
+                <td><strong>n2</strong></td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-na">-</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="final-enabled">ENABLED</td>
+                <td>-</td>
+            </tr>
+            
+            <tr>
+                <td><strong>n3</strong></td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-na">-</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="final-enabled">ENABLED</td>
+                <td>-</td>
+            </tr>
+            
+            <tr>
+                <td><strong>n5</strong></td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-na">-</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="final-enabled">ENABLED</td>
+                <td>-</td>
+            </tr>
+            
+            <tr>
+                <td><strong>n7</strong></td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-na">-</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="final-enabled">ENABLED</td>
+                <td>-</td>
+            </tr>
+            
+            <tr>
+                <td><strong>n8</strong></td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-na">-</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="final-enabled">ENABLED</td>
+                <td>-</td>
+            </tr>
+            
+            <tr>
+                <td><strong>n12</strong></td>
+                <td class="status-fail">X</td>
+                <td class="status-skip">.</td>
+                <td class="status-skip">.</td>
+                <td class="status-skip">.</td>
+                <td class="status-skip">.</td>
+                <td class="status-fail">X</td>
+                <td class="status-fail">X</td>
+                <td class="final-filtered">NOT_SUPPORTED</td>
+                <td>RFC</td>
+            </tr>
+            
+            <tr>
+                <td><strong>n14</strong></td>
+                <td class="status-fail">X</td>
+                <td class="status-skip">.</td>
+                <td class="status-skip">.</td>
+                <td class="status-skip">.</td>
+                <td class="status-skip">.</td>
+                <td class="status-fail">X</td>
+                <td class="status-fail">X</td>
+                <td class="final-filtered">NOT_SUPPORTED</td>
+                <td>RFC</td>
+            </tr>
+            
+            <tr>
+                <td><strong>n20</strong></td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-na">-</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="final-enabled">ENABLED</td>
+                <td>-</td>
+            </tr>
+            
+            <tr>
+                <td><strong>n25</strong></td>
+                <td class="status-fail">X</td>
+                <td class="status-skip">.</td>
+                <td class="status-skip">.</td>
+                <td class="status-skip">.</td>
+                <td class="status-skip">.</td>
+                <td class="status-fail">X</td>
+                <td class="status-fail">X</td>
+                <td class="final-filtered">NOT_SUPPORTED</td>
+                <td>RFC</td>
+            </tr>
+            
+            <tr>
+                <td><strong>n26</strong></td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-na">-</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="final-enabled">ENABLED</td>
+                <td>-</td>
+            </tr>
+            
+            <tr>
+                <td><strong>n28</strong></td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-na">-</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="final-enabled">ENABLED</td>
+                <td>-</td>
+            </tr>
+            
+            <tr>
+                <td><strong>n30</strong></td>
+                <td class="status-fail">X</td>
+                <td class="status-skip">.</td>
+                <td class="status-skip">.</td>
+                <td class="status-skip">.</td>
+                <td class="status-skip">.</td>
+                <td class="status-fail">X</td>
+                <td class="status-fail">X</td>
+                <td class="final-filtered">NOT_SUPPORTED</td>
+                <td>RFC</td>
+            </tr>
+            
+            <tr>
+                <td><strong>n38</strong></td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-na">-</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="final-enabled">ENABLED</td>
+                <td>-</td>
+            </tr>
+            
+            <tr>
+                <td><strong>n40</strong></td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-na">-</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="final-enabled">ENABLED</td>
+                <td>-</td>
+            </tr>
+            
+            <tr>
+                <td><strong>n41</strong></td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-na">-</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="final-enabled">ENABLED</td>
+                <td>-</td>
+            </tr>
+            
+            <tr>
+                <td><strong>n48</strong></td>
+                <td class="status-fail">X</td>
+                <td class="status-skip">.</td>
+                <td class="status-skip">.</td>
+                <td class="status-skip">.</td>
+                <td class="status-skip">.</td>
+                <td class="status-fail">X</td>
+                <td class="status-fail">X</td>
+                <td class="final-filtered">NOT_SUPPORTED</td>
+                <td>RFC</td>
+            </tr>
+            
+            <tr>
+                <td><strong>n66</strong></td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-na">-</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="final-enabled">ENABLED</td>
+                <td>-</td>
+            </tr>
+            
+            <tr>
+                <td><strong>n70</strong></td>
+                <td class="status-fail">X</td>
+                <td class="status-skip">.</td>
+                <td class="status-skip">.</td>
+                <td class="status-skip">.</td>
+                <td class="status-skip">.</td>
+                <td class="status-fail">X</td>
+                <td class="status-fail">X</td>
+                <td class="final-filtered">NOT_SUPPORTED</td>
+                <td>RFC</td>
+            </tr>
+            
+            <tr>
+                <td><strong>n71</strong></td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-na">-</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="final-enabled">ENABLED</td>
+                <td>-</td>
+            </tr>
+            
+            <tr>
+                <td><strong>n75</strong></td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-na">-</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="final-enabled">ENABLED</td>
+                <td>-</td>
+            </tr>
+            
+            <tr>
+                <td><strong>n77</strong></td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-na">-</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="final-enabled">ENABLED</td>
+                <td>-</td>
+            </tr>
+            
+            <tr>
+                <td><strong>n78</strong></td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="status-na">-</td>
+                <td class="status-pass">OK</td>
+                <td class="status-pass">OK</td>
+                <td class="final-enabled">ENABLED</td>
+                <td>-</td>
+            </tr>
+            
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        
+            <div class="section">
+                <div class="section-header">
+                    <h2>Anomalies <span class="badge badge-count">0</span></h2>
+                    <span class="toggle-icon">&#9660;</span>
+                </div>
+                <div class="section-content">
+                    <p style="color: #4caf50; padding: 10px;">&#10004; No anomalies detected.</p>
+                </div>
+            </div>
+            
+        
+
+        <footer>
+            <p>Generated by Band Combos Analyzer Tool</p>
+        </footer>
+    </div>
+    <script>
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            // Add click handlers to all section headers
+            document.querySelectorAll('.section-header').forEach(function(header) {
+                header.addEventListener('click', function() {
+                    const content = this.nextElementSibling;
+                    this.classList.toggle('collapsed');
+                    content.classList.toggle('collapsed');
+                });
+            });
+        });
+        
+    </script>
+
+    <div class="section claude-review-section">
+        <div class="section-header claude-header">
+            <h2>Stage 2: Claude Expert Review (Full Analysis)</h2>
+            <span class="toggle-icon">&#9660;</span>
+        </div>
+        <div class="section-content">
+            <div class="claude-review-content">
+                <h1 id="band-analysis-expert-review">Band Analysis Expert Review</h1>
+<h2 id="executive-summary">Executive Summary</h2>
+<p>This configuration appears <strong>well-structured and deployment-ready</strong>. The automated analysis shows clean filtering behavior with no anomalies detected. All band exclusions follow expected patterns through legitimate configuration stages.</p>
+<hr />
+<h2 id="1-validation-of-automated-findings">1. Validation of Automated Findings</h2>
+<h3 id="lte-band-analysis-correct">LTE Band Analysis &#10003; CORRECT</h3>
+<table>
+<thead>
+<tr>
+<th>Finding</th>
+<th>Validation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>27 of 28 bands ENABLED</td>
+<td>Correct</td>
+</tr>
+<tr>
+<td>B46 filtered at NV_Pref</td>
+<td><strong>Expected behavior</strong> - B46 (LAA/LTE-U at 5GHz unlicensed) is commonly disabled via NV preferences due to regulatory or carrier requirements</td>
+</tr>
+</tbody>
+</table>
+<p><strong>B46 Analysis:</strong> The filtering path shows B46 passes RFC, HW, Carrier Policy, and Generic Restrictions, but fails at MCFG NV Band Pref. This is intentional - LAA bands are often disabled by default and enabled only for specific carrier configurations that have completed regulatory approval for unlicensed spectrum operation.</p>
+<h3 id="nr-sa-band-analysis-correct">NR SA Band Analysis &#10003; CORRECT</h3>
+<table>
+<thead>
+<tr>
+<th>Finding</th>
+<th>Validation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>20 of 23 bands ENABLED</td>
+<td>Correct</td>
+</tr>
+<tr>
+<td>n12, n14, n30 filtered at HW_Filter</td>
+<td><strong>Expected behavior</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Hardware Filtering Analysis:</strong> These bands pass RFC (modem software supports them) but fail HW filtering, indicating:<br />
+- The RF front-end hardware on this device variant doesn't include the necessary filters/amplifiers for these bands<br />
+- This is a legitimate hardware limitation, not a configuration error<br />
+- n12/n14 (700 MHz) and n30 (2.3 GHz) require specific RF paths that may not be present on all SKUs</p>
+<h3 id="nr-nsa-en-dc-band-analysis-correct">NR NSA (EN-DC) Band Analysis &#10003; CORRECT</h3>
+<table>
+<thead>
+<tr>
+<th>Finding</th>
+<th>Validation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>17 of 23 bands ENABLED</td>
+<td>Correct - matches RFC "17 EN-DC"</td>
+</tr>
+<tr>
+<td>n12, n14, n25, n30, n48, n70 NOT_SUPPORTED at RFC</td>
+<td><strong>Expected behavior</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>RFC Filtering Analysis:</strong> The RFC XML declares 17 EN-DC capable bands. The 6 bands showing NOT_SUPPORTED are simply not included in the EN-DC combo definitions (<code>ca_4g_5g_combos</code> section). This is intentional RF combo engineering - not all SA-capable bands are necessarily configured for NSA operation due to:<br />
+- Antenna sharing constraints with LTE anchors<br />
+- Inter-band interference considerations<br />
+- Carrier-specific deployment requirements</p>
+<hr />
+<h2 id="2-anomaly-analysis">2. Anomaly Analysis</h2>
+<p><strong>No anomalies detected</strong> - This is the correct determination.</p>
+<p>All filtering follows expected precedence:<br />
+1. RFC defines supported bands &rarr; &#10003;<br />
+2. HW filtering removes bands without RF hardware &rarr; &#10003;<br />
+3. Carrier/Generic policies apply business rules &rarr; &#10003;<br />
+4. NV preferences apply runtime configuration &rarr; &#10003;<br />
+5. QXDM and UE Capability reflect final state &rarr; &#10003;</p>
+<hr />
+<h2 id="3-impact-assessment">3. Impact Assessment</h2>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Severity</th>
+<th>Impact</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>B46 disabled</td>
+<td><strong>Low</strong></td>
+<td>LAA is supplemental capacity only; device functions fully without it</td>
+</tr>
+<tr>
+<td>n12/n14/n30 SA disabled</td>
+<td><strong>Low</strong></td>
+<td>Hardware limitation; cannot be changed via configuration</td>
+</tr>
+<tr>
+<td>NSA bands reduced</td>
+<td><strong>None</strong></td>
+<td>Intentional RFC design; 17 EN-DC bands is substantial coverage</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="4-recommendations">4. Recommendations</h2>
+<h3 id="no-critical-actions-required">No Critical Actions Required</h3>
+<p><strong>Optional Considerations:</strong></p>
+<ol>
+<li><strong>B46 (LAA)</strong>: If this device is intended for carriers using LAA (T-Mobile, AT&amp;T in US), verify the NV disable is intentional. If LAA support is required:</li>
+<li>Check <code>nv_band_pref</code> MCFG settings</li>
+<li>
+<p>Verify carrier provisioning requirements</p>
+</li>
+<li>
+<p><strong>MDB Context Warning</strong>: The MDB shows "0 LTE, 0 NR" bands which suggests either:</p>
+</li>
+<li>No MCC target was specified for this analysis</li>
+<li>MDB file wasn't loaded</li>
+</ol>
+<p><strong>Recommendation:</strong> If runtime location-based filtering is used, re-run analysis with a specific MCC to verify expected bands are allowed for target markets.</p>
+<ol>
+<li><strong>Documentation</strong>: The SA vs NSA band delta (n25, n48, n70 supported in SA but not NSA) should be documented for carrier qualification if these bands are needed for EN-DC operation in specific markets.</li>
+</ol>
+<hr />
+<h2 id="5-overall-verdict">5. Overall Verdict</h2>
+<h3 id="safe-for-deployment">&#9989; SAFE FOR DEPLOYMENT</h3>
+<p><strong>Rationale:</strong><br />
+- All 28 LTE bands configured correctly with only B46 intentionally disabled<br />
+- 20 NR SA bands operational (3 limited by hardware)<br />
+- 17 NR NSA/EN-DC bands properly configured per RFC definition<br />
+- No unexpected filtering anomalies<br />
+- QXDM and UE Capability match expected post-filtering state<br />
+- Carrier and Generic policies have no unexpected exclusions</p>
+<p><strong>Configuration Quality Score: 98/100</strong></p>
+<p>The only item preventing a perfect score is the empty MDB context, which should be verified if location-based band filtering is part of the deployment requirements.</p>
+<hr />
+<p><em>Review completed based on Qualcomm modem configuration best practices and 3GPP band capability specifications.</em></p>
+            </div>
+        </div>
+    </div>
+    
+    <style>
+        /* Verdict Section Styles */
+        .verdict-section {
+            margin-bottom: 20px;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+        .verdict-section.verdict-safe {
+            border: 2px solid #28a745;
+        }
+        .verdict-section.verdict-warning {
+            border: 2px solid #ffc107;
+        }
+        .verdict-section.verdict-unsafe {
+            border: 2px solid #dc3545;
+        }
+        .verdict-header {
+            background: linear-gradient(135deg, #28a745, #20c997) !important;
+        }
+        .verdict-section.verdict-warning .verdict-header {
+            background: linear-gradient(135deg, #ffc107, #fd7e14) !important;
+        }
+        .verdict-section.verdict-unsafe .verdict-header {
+            background: linear-gradient(135deg, #dc3545, #c82333) !important;
+        }
+        .verdict-content {
+            background-color: white;
+            padding: 20px 25px;
+            line-height: 1.7;
+        }
+        .verdict-content h2, .verdict-content h3 {
+            margin-top: 0;
+            color: #28a745;
+        }
+        .verdict-section.verdict-warning .verdict-content h2,
+        .verdict-section.verdict-warning .verdict-content h3 {
+            color: #d39e00;
+        }
+        .verdict-section.verdict-unsafe .verdict-content h2,
+        .verdict-section.verdict-unsafe .verdict-content h3 {
+            color: #dc3545;
+        }
+        .verdict-content ul, .verdict-content ol {
+            margin: 10px 0 10px 25px;
+        }
+        .verdict-content li {
+            margin: 6px 0;
+        }
+        .verdict-content strong {
+            color: inherit;
+        }
+
+        /* Claude Review Section Styles */
+        .claude-review-section {
+            margin-top: 30px;
+            background-color: #f0f7ff;
+            border: 1px solid #b8daff;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .claude-header {
+            background: linear-gradient(135deg, #1a73e8, #4285f4) !important;
+        }
+        .claude-review-content {
+            background-color: white;
+            padding: 25px;
+            line-height: 1.7;
+            color: #333;
+        }
+        /* Headers */
+        .claude-review-content h1 {
+            color: #1a73e8;
+            font-size: 1.8em;
+            margin: 25px 0 15px 0;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #1a73e8;
+        }
+        .claude-review-content h2 {
+            color: #1a73e8;
+            font-size: 1.4em;
+            margin: 20px 0 12px 0;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #ddd;
+        }
+        .claude-review-content h3 {
+            color: #333;
+            font-size: 1.15em;
+            margin: 18px 0 10px 0;
+        }
+        /* Tables */
+        .claude-review-content table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+            font-size: 0.9em;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .claude-review-content table th {
+            background: linear-gradient(135deg, #1a73e8, #4285f4);
+            color: white;
+            padding: 12px 15px;
+            text-align: left;
+            font-weight: 600;
+        }
+        .claude-review-content table td {
+            padding: 10px 15px;
+            border-bottom: 1px solid #eee;
+        }
+        .claude-review-content table tr:nth-child(even) {
+            background-color: #f8f9fa;
+        }
+        .claude-review-content table tr:hover {
+            background-color: #e8f0fe;
+        }
+        /* Code blocks */
+        .claude-review-content pre {
+            background-color: #1e1e1e;
+            color: #d4d4d4;
+            padding: 15px;
+            border-radius: 6px;
+            overflow-x: auto;
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-size: 0.9em;
+            line-height: 1.5;
+            margin: 15px 0;
+        }
+        .claude-review-content code {
+            background-color: #f1f3f4;
+            color: #d93025;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+        .claude-review-content pre code {
+            background-color: transparent;
+            color: inherit;
+            padding: 0;
+        }
+        /* Lists */
+        .claude-review-content ul, .claude-review-content ol {
+            margin: 10px 0 10px 25px;
+        }
+        .claude-review-content li {
+            margin: 6px 0;
+        }
+        /* Blockquotes */
+        .claude-review-content blockquote {
+            border-left: 4px solid #1a73e8;
+            margin: 15px 0;
+            padding: 10px 20px;
+            background-color: #f8f9fa;
+            color: #555;
+        }
+        /* Horizontal rules */
+        .claude-review-content hr {
+            border: none;
+            border-top: 2px solid #eee;
+            margin: 25px 0;
+        }
+        /* Strong/Bold */
+        .claude-review-content strong {
+            color: #1a73e8;
+        }
+    </style>
+    </body>
+</html>

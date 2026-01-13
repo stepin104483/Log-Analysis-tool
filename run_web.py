@@ -10,9 +10,9 @@ Then open http://localhost:5000 in your browser.
 import os
 import sys
 
-# Add Band_Combos_Analyzer/src to Python path
+# Add DeviceSWAnalyzer/src to Python path
 script_dir = os.path.dirname(os.path.abspath(__file__))
-src_dir = os.path.join(script_dir, 'Band_Combos_Analyzer', 'src')
+src_dir = os.path.join(script_dir, 'DeviceSWAnalyzer', 'src')
 if src_dir not in sys.path:
     sys.path.insert(0, src_dir)
 

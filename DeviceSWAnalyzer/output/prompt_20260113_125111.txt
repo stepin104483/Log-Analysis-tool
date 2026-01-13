@@ -1,0 +1,164 @@
+================================================================================
+                    BAND ANALYSIS - CLAUDE REVIEW REQUEST
+================================================================================
+
+Generated: 2026-01-13 12:51:11
+
+You are an expert in Qualcomm modem band configuration and RF analysis.
+Review the following automated band analysis and provide your expert insights.
+
+
+--------------------------------------------------------------------------------
+SECTION 1: DOCUMENT STATUS
+--------------------------------------------------------------------------------
+
+[OK]      RFC XML                   - 28 LTE, 23 NR (17 EN-DC), 4 GSM
+[OK]      HW Band Filtering         - Loaded
+[OK]      Carrier Policy            - Excl: 0 LTE, 0 NR, 9 GW
+[OK]      Generic Restrictions      - Excl: 0 LTE, 0 NR
+[OK]      MCFG NV Band Pref         - Enabled: 26 LTE
+[OK]      MDB Config (Context)      - Context: 0 LTE, 0 NR
+[OK]      QXDM Log                  - 27 LTE, 20 NR SA
+[OK]      UE Capability             - 27 LTE, 20 NR SA, 17 NR NSA
+
+--------------------------------------------------------------------------------
+SECTION 2: AUTOMATED ANALYSIS RESULTS
+--------------------------------------------------------------------------------
+
+LTE BAND TRACING:
+---------------------------------------------------------------------------------
+Band   RFC    HW     Carrier  Generic  QXDM   UE_Cap  Status          Filtered At
+---------------------------------------------------------------------------------
+B1     PASS   PASS   PASS     PASS     PASS   PASS    ENABLED         -
+B2     PASS   PASS   PASS     PASS     PASS   PASS    ENABLED         -
+B3     PASS   PASS   PASS     PASS     PASS   PASS    ENABLED         -
+B4     PASS   PASS   PASS     PASS     PASS   PASS    ENABLED         -
+B5     PASS   PASS   PASS     PASS     PASS   PASS    ENABLED         -
+B7     PASS   PASS   PASS     PASS     PASS   PASS    ENABLED         -
+B8     PASS   PASS   PASS     PASS     PASS   PASS    ENABLED         -
+B12    PASS   PASS   PASS     PASS     PASS   PASS    ENABLED         -
+B13    PASS   PASS   PASS     PASS     PASS   PASS    ENABLED         -
+B14    PASS   PASS   PASS     PASS     PASS   PASS    ENABLED         -
+B20    PASS   PASS   PASS     PASS     PASS   PASS    ENABLED         -
+B25    PASS   PASS   PASS     PASS     PASS   PASS    ENABLED         -
+B26    PASS   PASS   PASS     PASS     PASS   PASS    ENABLED         -
+B28    PASS   PASS   PASS     PASS     PASS   PASS    ENABLED         -
+B29    PASS   PASS   PASS     PASS     PASS   PASS    ENABLED         -
+B30    PASS   PASS   PASS     PASS     PASS   PASS    ENABLED         -
+B32    PASS   PASS   PASS     PASS     PASS   PASS    ENABLED         -
+B38    PASS   PASS   PASS     PASS     PASS   PASS    ENABLED         -
+B39    PASS   PASS   PASS     PASS     PASS   PASS    ENABLED         -
+B40    PASS   PASS   PASS     PASS     PASS   PASS    ENABLED         -
+B41    PASS   PASS   PASS     PASS     PASS   PASS    ENABLED         -
+B42    PASS   PASS   PASS     PASS     PASS   PASS    ENABLED         -
+B43    PASS   PASS   PASS     PASS     PASS   PASS    ENABLED         -
+B46    PASS   PASS   PASS     PASS     FAIL   FAIL    FILTERED        NV_Pref
+B48    PASS   PASS   PASS     PASS     PASS   PASS    ENABLED         -
+B66    PASS   PASS   PASS     PASS     PASS   PASS    ENABLED         -
+B68    PASS   PASS   PASS     PASS     PASS   PASS    ENABLED         -
+B71    PASS   PASS   PASS     PASS     PASS   PASS    ENABLED         -
+---------------------------------------------------------------------------------
+
+NR SA BAND TRACING:
+---------------------------------------------------------------------------------
+Band   RFC    HW     Carrier  Generic  QXDM   UE_Cap  Status          Filtered At
+---------------------------------------------------------------------------------
+n1     PASS   PASS   PASS     PASS     PASS   PASS    ENABLED         -
+n2     PASS   PASS   PASS     PASS     PASS   PASS    ENABLED         -
+n3     PASS   PASS   PASS     PASS     PASS   PASS    ENABLED         -
+n5     PASS   PASS   PASS     PASS     PASS   PASS    ENABLED         -
+n7     PASS   PASS   PASS     PASS     PASS   PASS    ENABLED         -
+n8     PASS   PASS   PASS     PASS     PASS   PASS    ENABLED         -
+n12    PASS   FAIL   SKIP     SKIP     FAIL   FAIL    FILTERED        HW_Filter
+n14    PASS   FAIL   SKIP     SKIP     FAIL   FAIL    FILTERED        HW_Filter
+n20    PASS   PASS   PASS     PASS     PASS   PASS    ENABLED         -
+n25    PASS   PASS   PASS     PASS     PASS   PASS    ENABLED         -
+n26    PASS   PASS   PASS     PASS     PASS   PASS    ENABLED         -
+n28    PASS   PASS   PASS     PASS     PASS   PASS    ENABLED         -
+n30    PASS   FAIL   SKIP     SKIP     FAIL   FAIL    FILTERED        HW_Filter
+n38    PASS   PASS   PASS     PASS     PASS   PASS    ENABLED         -
+n40    PASS   PASS   PASS     PASS     PASS   PASS    ENABLED         -
+n41    PASS   PASS   PASS     PASS     PASS   PASS    ENABLED         -
+n48    PASS   PASS   PASS     PASS     PASS   PASS    ENABLED         -
+n66    PASS   PASS   PASS     PASS     PASS   PASS    ENABLED         -
+n70    PASS   PASS   PASS     PASS     PASS   PASS    ENABLED         -
+n71    PASS   PASS   PASS     PASS     PASS   PASS    ENABLED         -
+n75    PASS   PASS   PASS     PASS     PASS   PASS    ENABLED         -
+n77    PASS   PASS   PASS     PASS     PASS   PASS    ENABLED         -
+n78    PASS   PASS   PASS     PASS     PASS   PASS    ENABLED         -
+---------------------------------------------------------------------------------
+
+NR NSA BAND TRACING:
+---------------------------------------------------------------------------------
+Band   RFC    HW     Carrier  Generic  QXDM   UE_Cap  Status          Filtered At
+---------------------------------------------------------------------------------
+n1     PASS   PASS   PASS     PASS     PASS   PASS    ENABLED         -
+n2     PASS   PASS   PASS     PASS     PASS   PASS    ENABLED         -
+n3     PASS   PASS   PASS     PASS     PASS   PASS    ENABLED         -
+n5     PASS   PASS   PASS     PASS     PASS   PASS    ENABLED         -
+n7     PASS   PASS   PASS     PASS     PASS   PASS    ENABLED         -
+n8     PASS   PASS   PASS     PASS     PASS   PASS    ENABLED         -
+n12    FAIL   SKIP   SKIP     SKIP     FAIL   FAIL    NOT_SUPPORTED   RFC
+n14    FAIL   SKIP   SKIP     SKIP     FAIL   FAIL    NOT_SUPPORTED   RFC
+n20    PASS   PASS   PASS     PASS     PASS   PASS    ENABLED         -
+n25    FAIL   SKIP   SKIP     SKIP     FAIL   FAIL    NOT_SUPPORTED   RFC
+n26    PASS   PASS   PASS     PASS     PASS   PASS    ENABLED         -
+n28    PASS   PASS   PASS     PASS     PASS   PASS    ENABLED         -
+n30    FAIL   SKIP   SKIP     SKIP     FAIL   FAIL    NOT_SUPPORTED   RFC
+n38    PASS   PASS   PASS     PASS     PASS   PASS    ENABLED         -
+n40    PASS   PASS   PASS     PASS     PASS   PASS    ENABLED         -
+n41    PASS   PASS   PASS     PASS     PASS   PASS    ENABLED         -
+n48    FAIL   SKIP   SKIP     SKIP     FAIL   FAIL    NOT_SUPPORTED   RFC
+n66    PASS   PASS   PASS     PASS     PASS   PASS    ENABLED         -
+n70    FAIL   SKIP   SKIP     SKIP     FAIL   FAIL    NOT_SUPPORTED   RFC
+n71    PASS   PASS   PASS     PASS     PASS   PASS    ENABLED         -
+n75    PASS   PASS   PASS     PASS     PASS   PASS    ENABLED         -
+n77    PASS   PASS   PASS     PASS     PASS   PASS    ENABLED         -
+n78    PASS   PASS   PASS     PASS     PASS   PASS    ENABLED         -
+---------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+SECTION 3: DETECTED ANOMALIES
+--------------------------------------------------------------------------------
+
+No anomalies detected.
+
+--------------------------------------------------------------------------------
+SECTION 4: SUMMARY STATISTICS
+--------------------------------------------------------------------------------
+
+LTE Bands:    Total:  28  |  Enabled:  27  |  Filtered:   1  |  Anomalies: 0
+NR SA Bands:  Total:  23  |  Enabled:  20  |  Filtered:   3  |  Anomalies: 0
+NR NSA Bands: Total:  23  |  Enabled:  17  |  Filtered:   0  |  Anomalies: 0
+
+--------------------------------------------------------------------------------
+SECTION 5: MDB CONTEXT (Location-Based Band Information)
+--------------------------------------------------------------------------------
+
+NOTE: MDB (mcc2bands) is NOT part of the filtering pipeline. This information is
+provided as context for your expert review. MDB shows bands allowed for a specific
+location (MCC) at runtime - QXDM logs already reflect MDB filtering applied.
+
+Target MCC: Context: 0 LTE, 0 NR
+
+MDB Allowed LTE Bands (0): None
+MDB Allowed NR Bands (0): None
+
+Consider: If a band passes all config stages but is missing from QXDM,
+check if it's excluded by MDB for this location.
+
+--------------------------------------------------------------------------------
+SECTION 6: REVIEW INSTRUCTIONS
+--------------------------------------------------------------------------------
+
+Please provide:
+1. Validation of the automated findings - are the PASS/FAIL determinations correct?
+2. Explanation for each anomaly - what are the possible root causes?
+3. Impact assessment - how critical is each issue?
+4. Recommended actions to resolve anomalies
+5. Overall verdict: Is this configuration safe for deployment?
+
+Format your response with clear sections for each anomaly.
+Use your domain knowledge of Qualcomm modem configurations to provide insights.
+
+================================================================================

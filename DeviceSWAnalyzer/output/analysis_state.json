@@ -1,0 +1,1679 @@
+{
+  "timestamp": "2026-01-13T10:51:07.535264",
+  "doc_status": {
+    "RFC": {
+      "name": "RFC XML",
+      "loaded": true,
+      "details": "28 LTE, 23 NR (17 EN-DC), 4 GSM"
+    },
+    "HW_Filter": {
+      "name": "HW Band Filtering",
+      "loaded": true,
+      "details": "Loaded"
+    },
+    "Carrier": {
+      "name": "Carrier Policy",
+      "loaded": true,
+      "details": "Excl: 0 LTE, 0 NR, 9 GW"
+    },
+    "Generic": {
+      "name": "Generic Restrictions",
+      "loaded": true,
+      "details": "Excl: 0 LTE, 0 NR"
+    },
+    "NV_Pref": {
+      "name": "MCFG NV Band Pref",
+      "loaded": true,
+      "details": "Enabled: 26 LTE"
+    },
+    "MDB": {
+      "name": "MDB Config (Context)",
+      "loaded": true,
+      "details": "Context: 18 LTE, 11 NR"
+    },
+    "QXDM": {
+      "name": "QXDM Log",
+      "loaded": true,
+      "details": "27 LTE, 20 NR SA"
+    },
+    "UE_Cap": {
+      "name": "UE Capability",
+      "loaded": true,
+      "details": "27 LTE, 20 NR SA, 17 NR NSA"
+    }
+  },
+  "trace_results": {
+    "GSM": [
+      {
+        "band_num": 850,
+        "band_type": "GSM",
+        "stages": {
+          "RFC": "PASS",
+          "HW_Filter": "NA",
+          "Carrier": "NA",
+          "Generic": "NA",
+          "NV_Pref": "NA",
+          "QXDM": "NA",
+          "UE_Cap": "NA"
+        },
+        "final_status": "ENABLED",
+        "filtered_at": null
+      },
+      {
+        "band_num": 900,
+        "band_type": "GSM",
+        "stages": {
+          "RFC": "PASS",
+          "HW_Filter": "NA",
+          "Carrier": "NA",
+          "Generic": "NA",
+          "NV_Pref": "NA",
+          "QXDM": "NA",
+          "UE_Cap": "NA"
+        },
+        "final_status": "ENABLED",
+        "filtered_at": null
+      },
+      {
+        "band_num": 1800,
+        "band_type": "GSM",
+        "stages": {
+          "RFC": "PASS",
+          "HW_Filter": "NA",
+          "Carrier": "NA",
+          "Generic": "NA",
+          "NV_Pref": "NA",
+          "QXDM": "NA",
+          "UE_Cap": "NA"
+        },
+        "final_status": "ENABLED",
+        "filtered_at": null
+      },
+      {
+        "band_num": 1900,
+        "band_type": "GSM",
+        "stages": {
+          "RFC": "PASS",
+          "HW_Filter": "NA",
+          "Carrier": "NA",
+          "Generic": "NA",
+          "NV_Pref": "NA",
+          "QXDM": "NA",
+          "UE_Cap": "NA"
+        },
+        "final_status": "ENABLED",
+        "filtered_at": null
+      }
+    ],
+    "WCDMA": [
+      {
+        "band_num": 1,
+        "band_type": "WCDMA",
+        "stages": {
+          "RFC": "NA",
+          "HW_Filter": "PASS",
+          "Carrier": "PASS",
+          "Generic": "NA",
+          "NV_Pref": "NA",
+          "QXDM": "NA",
+          "UE_Cap": "NA"
+        },
+        "final_status": "ENABLED",
+        "filtered_at": null
+      },
+      {
+        "band_num": 2,
+        "band_type": "WCDMA",
+        "stages": {
+          "RFC": "NA",
+          "HW_Filter": "PASS",
+          "Carrier": "PASS",
+          "Generic": "NA",
+          "NV_Pref": "NA",
+          "QXDM": "NA",
+          "UE_Cap": "NA"
+        },
+        "final_status": "ENABLED",
+        "filtered_at": null
+      },
+      {
+        "band_num": 3,
+        "band_type": "WCDMA",
+        "stages": {
+          "RFC": "NA",
+          "HW_Filter": "PASS",
+          "Carrier": "PASS",
+          "Generic": "NA",
+          "NV_Pref": "NA",
+          "QXDM": "NA",
+          "UE_Cap": "NA"
+        },
+        "final_status": "ENABLED",
+        "filtered_at": null
+      },
+      {
+        "band_num": 4,
+        "band_type": "WCDMA",
+        "stages": {
+          "RFC": "NA",
+          "HW_Filter": "PASS",
+          "Carrier": "PASS",
+          "Generic": "NA",
+          "NV_Pref": "NA",
+          "QXDM": "NA",
+          "UE_Cap": "NA"
+        },
+        "final_status": "ENABLED",
+        "filtered_at": null
+      },
+      {
+        "band_num": 5,
+        "band_type": "WCDMA",
+        "stages": {
+          "RFC": "NA",
+          "HW_Filter": "PASS",
+          "Carrier": "PASS",
+          "Generic": "NA",
+          "NV_Pref": "NA",
+          "QXDM": "NA",
+          "UE_Cap": "NA"
+        },
+        "final_status": "ENABLED",
+        "filtered_at": null
+      },
+      {
+        "band_num": 6,
+        "band_type": "WCDMA",
+        "stages": {
+          "RFC": "NA",
+          "HW_Filter": "PASS",
+          "Carrier": "PASS",
+          "Generic": "NA",
+          "NV_Pref": "NA",
+          "QXDM": "NA",
+          "UE_Cap": "NA"
+        },
+        "final_status": "ENABLED",
+        "filtered_at": null
+      },
+      {
+        "band_num": 7,
+        "band_type": "WCDMA",
+        "stages": {
+          "RFC": "NA",
+          "HW_Filter": "PASS",
+          "Carrier": "PASS",
+          "Generic": "NA",
+          "NV_Pref": "NA",
+          "QXDM": "NA",
+          "UE_Cap": "NA"
+        },
+        "final_status": "ENABLED",
+        "filtered_at": null
+      },
+      {
+        "band_num": 8,
+        "band_type": "WCDMA",
+        "stages": {
+          "RFC": "NA",
+          "HW_Filter": "PASS",
+          "Carrier": "FAIL",
+          "Generic": "NA",
+          "NV_Pref": "NA",
+          "QXDM": "NA",
+          "UE_Cap": "NA"
+        },
+        "final_status": "FILTERED",
+        "filtered_at": "Carrier"
+      },
+      {
+        "band_num": 9,
+        "band_type": "WCDMA",
+        "stages": {
+          "RFC": "NA",
+          "HW_Filter": "PASS",
+          "Carrier": "FAIL",
+          "Generic": "NA",
+          "NV_Pref": "NA",
+          "QXDM": "NA",
+          "UE_Cap": "NA"
+        },
+        "final_status": "FILTERED",
+        "filtered_at": "Carrier"
+      },
+      {
+        "band_num": 10,
+        "band_type": "WCDMA",
+        "stages": {
+          "RFC": "NA",
+          "HW_Filter": "PASS",
+          "Carrier": "FAIL",
+          "Generic": "NA",
+          "NV_Pref": "NA",
+          "QXDM": "NA",
+          "UE_Cap": "NA"
+        },
+        "final_status": "FILTERED",
+        "filtered_at": "Carrier"
+      },
+      {
+        "band_num": 11,
+        "band_type": "WCDMA",
+        "stages": {
+          "RFC": "NA",
+          "HW_Filter": "PASS",
+          "Carrier": "PASS",
+          "Generic": "NA",
+          "NV_Pref": "NA",
+          "QXDM": "NA",
+          "UE_Cap": "NA"
+        },
+        "final_status": "ENABLED",
+        "filtered_at": null
+      },
+      {
+        "band_num": 12,
+        "band_type": "WCDMA",
+        "stages": {
+          "RFC": "NA",
+          "HW_Filter": "PASS",
+          "Carrier": "PASS",
+          "Generic": "NA",
+          "NV_Pref": "NA",
+          "QXDM": "NA",
+          "UE_Cap": "NA"
+        },
+        "final_status": "ENABLED",
+        "filtered_at": null
+      },
+      {
+        "band_num": 13,
+        "band_type": "WCDMA",
+        "stages": {
+          "RFC": "NA",
+          "HW_Filter": "PASS",
+          "Carrier": "PASS",
+          "Generic": "NA",
+          "NV_Pref": "NA",
+          "QXDM": "NA",
+          "UE_Cap": "NA"
+        },
+        "final_status": "ENABLED",
+        "filtered_at": null
+      },
+      {
+        "band_num": 14,
+        "band_type": "WCDMA",
+        "stages": {
+          "RFC": "NA",
+          "HW_Filter": "PASS",
+          "Carrier": "PASS",
+          "Generic": "NA",
+          "NV_Pref": "NA",
+          "QXDM": "NA",
+          "UE_Cap": "NA"
+        },
+        "final_status": "ENABLED",
+        "filtered_at": null
+      },
+      {
+        "band_num": 15,
+        "band_type": "WCDMA",
+        "stages": {
+          "RFC": "NA",
+          "HW_Filter": "PASS",
+          "Carrier": "PASS",
+          "Generic": "NA",
+          "NV_Pref": "NA",
+          "QXDM": "NA",
+          "UE_Cap": "NA"
+        },
+        "final_status": "ENABLED",
+        "filtered_at": null
+      },
+      {
+        "band_num": 16,
+        "band_type": "WCDMA",
+        "stages": {
+          "RFC": "NA",
+          "HW_Filter": "PASS",
+          "Carrier": "PASS",
+          "Generic": "NA",
+          "NV_Pref": "NA",
+          "QXDM": "NA",
+          "UE_Cap": "NA"
+        },
+        "final_status": "ENABLED",
+        "filtered_at": null
+      },
+      {
+        "band_num": 17,
+        "band_type": "WCDMA",
+        "stages": {
+          "RFC": "NA",
+          "HW_Filter": "PASS",
+          "Carrier": "FAIL",
+          "Generic": "NA",
+          "NV_Pref": "NA",
+          "QXDM": "NA",
+          "UE_Cap": "NA"
+        },
+        "final_status": "FILTERED",
+        "filtered_at": "Carrier"
+      },
+      {
+        "band_num": 18,
+        "band_type": "WCDMA",
+        "stages": {
+          "RFC": "NA",
+          "HW_Filter": "PASS",
+          "Carrier": "FAIL",
+          "Generic": "NA",
+          "NV_Pref": "NA",
+          "QXDM": "NA",
+          "UE_Cap": "NA"
+        },
+        "final_status": "FILTERED",
+        "filtered_at": "Carrier"
+      },
+      {
+        "band_num": 19,
+        "band_type": "WCDMA",
+        "stages": {
+          "RFC": "NA",
+          "HW_Filter": "PASS",
+          "Carrier": "FAIL",
+          "Generic": "NA",
+          "NV_Pref": "NA",
+          "QXDM": "NA",
+          "UE_Cap": "NA"
+        },
+        "final_status": "FILTERED",
+        "filtered_at": "Carrier"
+      },
+      {
+        "band_num": 20,
+        "band_type": "WCDMA",
+        "stages": {
+          "RFC": "NA",
+          "HW_Filter": "PASS",
+          "Carrier": "FAIL",
+          "Generic": "NA",
+          "NV_Pref": "NA",
+          "QXDM": "NA",
+          "UE_Cap": "NA"
+        },
+        "final_status": "FILTERED",
+        "filtered_at": "Carrier"
+      },
+      {
+        "band_num": 21,
+        "band_type": "WCDMA",
+        "stages": {
+          "RFC": "NA",
+          "HW_Filter": "PASS",
+          "Carrier": "FAIL",
+          "Generic": "NA",
+          "NV_Pref": "NA",
+          "QXDM": "NA",
+          "UE_Cap": "NA"
+        },
+        "final_status": "FILTERED",
+        "filtered_at": "Carrier"
+      },
+      {
+        "band_num": 22,
+        "band_type": "WCDMA",
+        "stages": {
+          "RFC": "NA",
+          "HW_Filter": "PASS",
+          "Carrier": "FAIL",
+          "Generic": "NA",
+          "NV_Pref": "NA",
+          "QXDM": "NA",
+          "UE_Cap": "NA"
+        },
+        "final_status": "FILTERED",
+        "filtered_at": "Carrier"
+      },
+      {
+        "band_num": 23,
+        "band_type": "WCDMA",
+        "stages": {
+          "RFC": "NA",
+          "HW_Filter": "PASS",
+          "Carrier": "PASS",
+          "Generic": "NA",
+          "NV_Pref": "NA",
+          "QXDM": "NA",
+          "UE_Cap": "NA"
+        },
+        "final_status": "ENABLED",
+        "filtered_at": null
+      },
+      {
+        "band_num": 24,
+        "band_type": "WCDMA",
+        "stages": {
+          "RFC": "NA",
+          "HW_Filter": "PASS",
+          "Carrier": "PASS",
+          "Generic": "NA",
+          "NV_Pref": "NA",
+          "QXDM": "NA",
+          "UE_Cap": "NA"
+        },
+        "final_status": "ENABLED",
+        "filtered_at": null
+      },
+      {
+        "band_num": 25,
+        "band_type": "WCDMA",
+        "stages": {
+          "RFC": "NA",
+          "HW_Filter": "PASS",
+          "Carrier": "PASS",
+          "Generic": "NA",
+          "NV_Pref": "NA",
+          "QXDM": "NA",
+          "UE_Cap": "NA"
+        },
+        "final_status": "ENABLED",
+        "filtered_at": null
+      },
+      {
+        "band_num": 26,
+        "band_type": "WCDMA",
+        "stages": {
+          "RFC": "NA",
+          "HW_Filter": "PASS",
+          "Carrier": "PASS",
+          "Generic": "NA",
+          "NV_Pref": "NA",
+          "QXDM": "NA",
+          "UE_Cap": "NA"
+        },
+        "final_status": "ENABLED",
+        "filtered_at": null
+      }
+    ],
+    "LTE": [
+      {
+        "band_num": 1,
+        "band_type": "LTE",
+        "stages": {
+          "RFC": "PASS",
+          "HW_Filter": "PASS",
+          "Carrier": "PASS",
+          "Generic": "PASS",
+          "NV_Pref": "PASS",
+          "QXDM": "PASS",
+          "UE_Cap": "PASS"
+        },
+        "final_status": "ENABLED",
+        "filtered_at": null
+      },
+      {
+        "band_num": 2,
+        "band_type": "LTE",
+        "stages": {
+          "RFC": "PASS",
+          "HW_Filter": "PASS",
+          "Carrier": "PASS",
+          "Generic": "PASS",
+          "NV_Pref": "PASS",
+          "QXDM": "PASS",
+          "UE_Cap": "PASS"
+        },
+        "final_status": "ENABLED",
+        "filtered_at": null
+      },
+      {
+        "band_num": 3,
+        "band_type": "LTE",
+        "stages": {
+          "RFC": "PASS",
+          "HW_Filter": "PASS",
+          "Carrier": "PASS",
+          "Generic": "PASS",
+          "NV_Pref": "PASS",
+          "QXDM": "PASS",
+          "UE_Cap": "PASS"
+        },
+        "final_status": "ENABLED",
+        "filtered_at": null
+      },
+      {
+        "band_num": 4,
+        "band_type": "LTE",
+        "stages": {
+          "RFC": "PASS",
+          "HW_Filter": "PASS",
+          "Carrier": "PASS",
+          "Generic": "PASS",
+          "NV_Pref": "PASS",
+          "QXDM": "PASS",
+          "UE_Cap": "PASS"
+        },
+        "final_status": "ENABLED",
+        "filtered_at": null
+      },
+      {
+        "band_num": 5,
+        "band_type": "LTE",
+        "stages": {
+          "RFC": "PASS",
+          "HW_Filter": "PASS",
+          "Carrier": "PASS",
+          "Generic": "PASS",
+          "NV_Pref": "PASS",
+          "QXDM": "PASS",
+          "UE_Cap": "PASS"
+        },
+        "final_status": "ENABLED",
+        "filtered_at": null
+      },
+      {
+        "band_num": 7,
+        "band_type": "LTE",
+        "stages": {
+          "RFC": "PASS",
+          "HW_Filter": "PASS",
+          "Carrier": "PASS",
+          "Generic": "PASS",
+          "NV_Pref": "PASS",
+          "QXDM": "PASS",
+          "UE_Cap": "PASS"
+        },
+        "final_status": "ENABLED",
+        "filtered_at": null
+      },
+      {
+        "band_num": 8,
+        "band_type": "LTE",
+        "stages": {
+          "RFC": "PASS",
+          "HW_Filter": "PASS",
+          "Carrier": "PASS",
+          "Generic": "PASS",
+          "NV_Pref": "PASS",
+          "QXDM": "PASS",
+          "UE_Cap": "PASS"
+        },
+        "final_status": "ENABLED",
+        "filtered_at": null
+      },
+      {
+        "band_num": 12,
+        "band_type": "LTE",
+        "stages": {
+          "RFC": "PASS",
+          "HW_Filter": "PASS",
+          "Carrier": "PASS",
+          "Generic": "PASS",
+          "NV_Pref": "PASS",
+          "QXDM": "PASS",
+          "UE_Cap": "PASS"
+        },
+        "final_status": "ENABLED",
+        "filtered_at": null
+      },
+      {
+        "band_num": 13,
+        "band_type": "LTE",
+        "stages": {
+          "RFC": "PASS",
+          "HW_Filter": "PASS",
+          "Carrier": "PASS",
+          "Generic": "PASS",
+          "NV_Pref": "PASS",
+          "QXDM": "PASS",
+          "UE_Cap": "PASS"
+        },
+        "final_status": "ENABLED",
+        "filtered_at": null
+      },
+      {
+        "band_num": 14,
+        "band_type": "LTE",
+        "stages": {
+          "RFC": "PASS",
+          "HW_Filter": "PASS",
+          "Carrier": "PASS",
+          "Generic": "PASS",
+          "NV_Pref": "PASS",
+          "QXDM": "PASS",
+          "UE_Cap": "PASS"
+        },
+        "final_status": "ENABLED",
+        "filtered_at": null
+      },
+      {
+        "band_num": 20,
+        "band_type": "LTE",
+        "stages": {
+          "RFC": "PASS",
+          "HW_Filter": "PASS",
+          "Carrier": "PASS",
+          "Generic": "PASS",
+          "NV_Pref": "PASS",
+          "QXDM": "PASS",
+          "UE_Cap": "PASS"
+        },
+        "final_status": "ENABLED",
+        "filtered_at": null
+      },
+      {
+        "band_num": 25,
+        "band_type": "LTE",
+        "stages": {
+          "RFC": "PASS",
+          "HW_Filter": "PASS",
+          "Carrier": "PASS",
+          "Generic": "PASS",
+          "NV_Pref": "PASS",
+          "QXDM": "PASS",
+          "UE_Cap": "PASS"
+        },
+        "final_status": "ENABLED",
+        "filtered_at": null
+      },
+      {
+        "band_num": 26,
+        "band_type": "LTE",
+        "stages": {
+          "RFC": "PASS",
+          "HW_Filter": "PASS",
+          "Carrier": "PASS",
+          "Generic": "PASS",
+          "NV_Pref": "PASS",
+          "QXDM": "PASS",
+          "UE_Cap": "PASS"
+        },
+        "final_status": "ENABLED",
+        "filtered_at": null
+      },
+      {
+        "band_num": 28,
+        "band_type": "LTE",
+        "stages": {
+          "RFC": "PASS",
+          "HW_Filter": "PASS",
+          "Carrier": "PASS",
+          "Generic": "PASS",
+          "NV_Pref": "PASS",
+          "QXDM": "PASS",
+          "UE_Cap": "PASS"
+        },
+        "final_status": "ENABLED",
+        "filtered_at": null
+      },
+      {
+        "band_num": 29,
+        "band_type": "LTE",
+        "stages": {
+          "RFC": "PASS",
+          "HW_Filter": "PASS",
+          "Carrier": "PASS",
+          "Generic": "PASS",
+          "NV_Pref": "PASS",
+          "QXDM": "PASS",
+          "UE_Cap": "PASS"
+        },
+        "final_status": "ENABLED",
+        "filtered_at": null
+      },
+      {
+        "band_num": 30,
+        "band_type": "LTE",
+        "stages": {
+          "RFC": "PASS",
+          "HW_Filter": "PASS",
+          "Carrier": "PASS",
+          "Generic": "PASS",
+          "NV_Pref": "PASS",
+          "QXDM": "PASS",
+          "UE_Cap": "PASS"
+        },
+        "final_status": "ENABLED",
+        "filtered_at": null
+      },
+      {
+        "band_num": 32,
+        "band_type": "LTE",
+        "stages": {
+          "RFC": "PASS",
+          "HW_Filter": "PASS",
+          "Carrier": "PASS",
+          "Generic": "PASS",
+          "NV_Pref": "PASS",
+          "QXDM": "PASS",
+          "UE_Cap": "PASS"
+        },
+        "final_status": "ENABLED",
+        "filtered_at": null
+      },
+      {
+        "band_num": 38,
+        "band_type": "LTE",
+        "stages": {
+          "RFC": "PASS",
+          "HW_Filter": "PASS",
+          "Carrier": "PASS",
+          "Generic": "PASS",
+          "NV_Pref": "PASS",
+          "QXDM": "PASS",
+          "UE_Cap": "PASS"
+        },
+        "final_status": "ENABLED",
+        "filtered_at": null
+      },
+      {
+        "band_num": 39,
+        "band_type": "LTE",
+        "stages": {
+          "RFC": "PASS",
+          "HW_Filter": "PASS",
+          "Carrier": "PASS",
+          "Generic": "PASS",
+          "NV_Pref": "PASS",
+          "QXDM": "PASS",
+          "UE_Cap": "PASS"
+        },
+        "final_status": "ENABLED",
+        "filtered_at": null
+      },
+      {
+        "band_num": 40,
+        "band_type": "LTE",
+        "stages": {
+          "RFC": "PASS",
+          "HW_Filter": "PASS",
+          "Carrier": "PASS",
+          "Generic": "PASS",
+          "NV_Pref": "PASS",
+          "QXDM": "PASS",
+          "UE_Cap": "PASS"
+        },
+        "final_status": "ENABLED",
+        "filtered_at": null
+      },
+      {
+        "band_num": 41,
+        "band_type": "LTE",
+        "stages": {
+          "RFC": "PASS",
+          "HW_Filter": "PASS",
+          "Carrier": "PASS",
+          "Generic": "PASS",
+          "NV_Pref": "PASS",
+          "QXDM": "PASS",
+          "UE_Cap": "PASS"
+        },
+        "final_status": "ENABLED",
+        "filtered_at": null
+      },
+      {
+        "band_num": 42,
+        "band_type": "LTE",
+        "stages": {
+          "RFC": "PASS",
+          "HW_Filter": "PASS",
+          "Carrier": "PASS",
+          "Generic": "PASS",
+          "NV_Pref": "PASS",
+          "QXDM": "PASS",
+          "UE_Cap": "PASS"
+        },
+        "final_status": "ENABLED",
+        "filtered_at": null
+      },
+      {
+        "band_num": 43,
+        "band_type": "LTE",
+        "stages": {
+          "RFC": "PASS",
+          "HW_Filter": "PASS",
+          "Carrier": "PASS",
+          "Generic": "PASS",
+          "NV_Pref": "PASS",
+          "QXDM": "PASS",
+          "UE_Cap": "PASS"
+        },
+        "final_status": "ENABLED",
+        "filtered_at": null
+      },
+      {
+        "band_num": 46,
+        "band_type": "LTE",
+        "stages": {
+          "RFC": "PASS",
+          "HW_Filter": "PASS",
+          "Carrier": "PASS",
+          "Generic": "PASS",
+          "NV_Pref": "FAIL",
+          "QXDM": "FAIL",
+          "UE_Cap": "FAIL"
+        },
+        "final_status": "FILTERED",
+        "filtered_at": "NV_Pref"
+      },
+      {
+        "band_num": 48,
+        "band_type": "LTE",
+        "stages": {
+          "RFC": "PASS",
+          "HW_Filter": "PASS",
+          "Carrier": "PASS",
+          "Generic": "PASS",
+          "NV_Pref": "PASS",
+          "QXDM": "PASS",
+          "UE_Cap": "PASS"
+        },
+        "final_status": "ENABLED",
+        "filtered_at": null
+      },
+      {
+        "band_num": 66,
+        "band_type": "LTE",
+        "stages": {
+          "RFC": "PASS",
+          "HW_Filter": "PASS",
+          "Carrier": "PASS",
+          "Generic": "PASS",
+          "NV_Pref": "NA",
+          "QXDM": "PASS",
+          "UE_Cap": "PASS"
+        },
+        "final_status": "ENABLED",
+        "filtered_at": null
+      },
+      {
+        "band_num": 68,
+        "band_type": "LTE",
+        "stages": {
+          "RFC": "PASS",
+          "HW_Filter": "PASS",
+          "Carrier": "PASS",
+          "Generic": "PASS",
+          "NV_Pref": "NA",
+          "QXDM": "PASS",
+          "UE_Cap": "PASS"
+        },
+        "final_status": "ENABLED",
+        "filtered_at": null
+      },
+      {
+        "band_num": 71,
+        "band_type": "LTE",
+        "stages": {
+          "RFC": "PASS",
+          "HW_Filter": "PASS",
+          "Carrier": "PASS",
+          "Generic": "PASS",
+          "NV_Pref": "NA",
+          "QXDM": "PASS",
+          "UE_Cap": "PASS"
+        },
+        "final_status": "ENABLED",
+        "filtered_at": null
+      }
+    ],
+    "NR_SA": [
+      {
+        "band_num": 1,
+        "band_type": "NR_SA",
+        "stages": {
+          "RFC": "PASS",
+          "HW_Filter": "PASS",
+          "Carrier": "PASS",
+          "Generic": "PASS",
+          "NV_Pref": "NA",
+          "QXDM": "PASS",
+          "UE_Cap": "PASS"
+        },
+        "final_status": "ENABLED",
+        "filtered_at": null
+      },
+      {
+        "band_num": 2,
+        "band_type": "NR_SA",
+        "stages": {
+          "RFC": "PASS",
+          "HW_Filter": "PASS",
+          "Carrier": "PASS",
+          "Generic": "PASS",
+          "NV_Pref": "NA",
+          "QXDM": "PASS",
+          "UE_Cap": "PASS"
+        },
+        "final_status": "ENABLED",
+        "filtered_at": null
+      },
+      {
+        "band_num": 3,
+        "band_type": "NR_SA",
+        "stages": {
+          "RFC": "PASS",
+          "HW_Filter": "PASS",
+          "Carrier": "PASS",
+          "Generic": "PASS",
+          "NV_Pref": "NA",
+          "QXDM": "PASS",
+          "UE_Cap": "PASS"
+        },
+        "final_status": "ENABLED",
+        "filtered_at": null
+      },
+      {
+        "band_num": 5,
+        "band_type": "NR_SA",
+        "stages": {
+          "RFC": "PASS",
+          "HW_Filter": "PASS",
+          "Carrier": "PASS",
+          "Generic": "PASS",
+          "NV_Pref": "NA",
+          "QXDM": "PASS",
+          "UE_Cap": "PASS"
+        },
+        "final_status": "ENABLED",
+        "filtered_at": null
+      },
+      {
+        "band_num": 7,
+        "band_type": "NR_SA",
+        "stages": {
+          "RFC": "PASS",
+          "HW_Filter": "PASS",
+          "Carrier": "PASS",
+          "Generic": "PASS",
+          "NV_Pref": "NA",
+          "QXDM": "PASS",
+          "UE_Cap": "PASS"
+        },
+        "final_status": "ENABLED",
+        "filtered_at": null
+      },
+      {
+        "band_num": 8,
+        "band_type": "NR_SA",
+        "stages": {
+          "RFC": "PASS",
+          "HW_Filter": "PASS",
+          "Carrier": "PASS",
+          "Generic": "PASS",
+          "NV_Pref": "NA",
+          "QXDM": "PASS",
+          "UE_Cap": "PASS"
+        },
+        "final_status": "ENABLED",
+        "filtered_at": null
+      },
+      {
+        "band_num": 12,
+        "band_type": "NR_SA",
+        "stages": {
+          "RFC": "PASS",
+          "HW_Filter": "FAIL",
+          "Carrier": "SKIPPED",
+          "Generic": "SKIPPED",
+          "NV_Pref": "SKIPPED",
+          "QXDM": "FAIL",
+          "UE_Cap": "FAIL"
+        },
+        "final_status": "FILTERED",
+        "filtered_at": "HW_Filter"
+      },
+      {
+        "band_num": 14,
+        "band_type": "NR_SA",
+        "stages": {
+          "RFC": "PASS",
+          "HW_Filter": "FAIL",
+          "Carrier": "SKIPPED",
+          "Generic": "SKIPPED",
+          "NV_Pref": "SKIPPED",
+          "QXDM": "FAIL",
+          "UE_Cap": "FAIL"
+        },
+        "final_status": "FILTERED",
+        "filtered_at": "HW_Filter"
+      },
+      {
+        "band_num": 20,
+        "band_type": "NR_SA",
+        "stages": {
+          "RFC": "PASS",
+          "HW_Filter": "PASS",
+          "Carrier": "PASS",
+          "Generic": "PASS",
+          "NV_Pref": "NA",
+          "QXDM": "PASS",
+          "UE_Cap": "PASS"
+        },
+        "final_status": "ENABLED",
+        "filtered_at": null
+      },
+      {
+        "band_num": 25,
+        "band_type": "NR_SA",
+        "stages": {
+          "RFC": "PASS",
+          "HW_Filter": "PASS",
+          "Carrier": "PASS",
+          "Generic": "PASS",
+          "NV_Pref": "NA",
+          "QXDM": "PASS",
+          "UE_Cap": "PASS"
+        },
+        "final_status": "ENABLED",
+        "filtered_at": null
+      },
+      {
+        "band_num": 26,
+        "band_type": "NR_SA",
+        "stages": {
+          "RFC": "PASS",
+          "HW_Filter": "PASS",
+          "Carrier": "PASS",
+          "Generic": "PASS",
+          "NV_Pref": "NA",
+          "QXDM": "PASS",
+          "UE_Cap": "PASS"
+        },
+        "final_status": "ENABLED",
+        "filtered_at": null
+      },
+      {
+        "band_num": 28,
+        "band_type": "NR_SA",
+        "stages": {
+          "RFC": "PASS",
+          "HW_Filter": "PASS",
+          "Carrier": "PASS",
+          "Generic": "PASS",
+          "NV_Pref": "NA",
+          "QXDM": "PASS",
+          "UE_Cap": "PASS"
+        },
+        "final_status": "ENABLED",
+        "filtered_at": null
+      },
+      {
+        "band_num": 30,
+        "band_type": "NR_SA",
+        "stages": {
+          "RFC": "PASS",
+          "HW_Filter": "FAIL",
+          "Carrier": "SKIPPED",
+          "Generic": "SKIPPED",
+          "NV_Pref": "SKIPPED",
+          "QXDM": "FAIL",
+          "UE_Cap": "FAIL"
+        },
+        "final_status": "FILTERED",
+        "filtered_at": "HW_Filter"
+      },
+      {
+        "band_num": 38,
+        "band_type": "NR_SA",
+        "stages": {
+          "RFC": "PASS",
+          "HW_Filter": "PASS",
+          "Carrier": "PASS",
+          "Generic": "PASS",
+          "NV_Pref": "NA",
+          "QXDM": "PASS",
+          "UE_Cap": "PASS"
+        },
+        "final_status": "ENABLED",
+        "filtered_at": null
+      },
+      {
+        "band_num": 40,
+        "band_type": "NR_SA",
+        "stages": {
+          "RFC": "PASS",
+          "HW_Filter": "PASS",
+          "Carrier": "PASS",
+          "Generic": "PASS",
+          "NV_Pref": "NA",
+          "QXDM": "PASS",
+          "UE_Cap": "PASS"
+        },
+        "final_status": "ENABLED",
+        "filtered_at": null
+      },
+      {
+        "band_num": 41,
+        "band_type": "NR_SA",
+        "stages": {
+          "RFC": "PASS",
+          "HW_Filter": "PASS",
+          "Carrier": "PASS",
+          "Generic": "PASS",
+          "NV_Pref": "NA",
+          "QXDM": "PASS",
+          "UE_Cap": "PASS"
+        },
+        "final_status": "ENABLED",
+        "filtered_at": null
+      },
+      {
+        "band_num": 48,
+        "band_type": "NR_SA",
+        "stages": {
+          "RFC": "PASS",
+          "HW_Filter": "PASS",
+          "Carrier": "PASS",
+          "Generic": "PASS",
+          "NV_Pref": "NA",
+          "QXDM": "PASS",
+          "UE_Cap": "PASS"
+        },
+        "final_status": "ENABLED",
+        "filtered_at": null
+      },
+      {
+        "band_num": 66,
+        "band_type": "NR_SA",
+        "stages": {
+          "RFC": "PASS",
+          "HW_Filter": "PASS",
+          "Carrier": "PASS",
+          "Generic": "PASS",
+          "NV_Pref": "NA",
+          "QXDM": "PASS",
+          "UE_Cap": "PASS"
+        },
+        "final_status": "ENABLED",
+        "filtered_at": null
+      },
+      {
+        "band_num": 70,
+        "band_type": "NR_SA",
+        "stages": {
+          "RFC": "PASS",
+          "HW_Filter": "PASS",
+          "Carrier": "PASS",
+          "Generic": "PASS",
+          "NV_Pref": "NA",
+          "QXDM": "PASS",
+          "UE_Cap": "PASS"
+        },
+        "final_status": "ENABLED",
+        "filtered_at": null
+      },
+      {
+        "band_num": 71,
+        "band_type": "NR_SA",
+        "stages": {
+          "RFC": "PASS",
+          "HW_Filter": "PASS",
+          "Carrier": "PASS",
+          "Generic": "PASS",
+          "NV_Pref": "NA",
+          "QXDM": "PASS",
+          "UE_Cap": "PASS"
+        },
+        "final_status": "ENABLED",
+        "filtered_at": null
+      },
+      {
+        "band_num": 75,
+        "band_type": "NR_SA",
+        "stages": {
+          "RFC": "PASS",
+          "HW_Filter": "PASS",
+          "Carrier": "PASS",
+          "Generic": "PASS",
+          "NV_Pref": "NA",
+          "QXDM": "PASS",
+          "UE_Cap": "PASS"
+        },
+        "final_status": "ENABLED",
+        "filtered_at": null
+      },
+      {
+        "band_num": 77,
+        "band_type": "NR_SA",
+        "stages": {
+          "RFC": "PASS",
+          "HW_Filter": "PASS",
+          "Carrier": "PASS",
+          "Generic": "PASS",
+          "NV_Pref": "NA",
+          "QXDM": "PASS",
+          "UE_Cap": "PASS"
+        },
+        "final_status": "ENABLED",
+        "filtered_at": null
+      },
+      {
+        "band_num": 78,
+        "band_type": "NR_SA",
+        "stages": {
+          "RFC": "PASS",
+          "HW_Filter": "PASS",
+          "Carrier": "PASS",
+          "Generic": "PASS",
+          "NV_Pref": "NA",
+          "QXDM": "PASS",
+          "UE_Cap": "PASS"
+        },
+        "final_status": "ENABLED",
+        "filtered_at": null
+      }
+    ],
+    "NR_NSA": [
+      {
+        "band_num": 1,
+        "band_type": "NR_NSA",
+        "stages": {
+          "RFC": "PASS",
+          "HW_Filter": "PASS",
+          "Carrier": "PASS",
+          "Generic": "PASS",
+          "NV_Pref": "NA",
+          "QXDM": "PASS",
+          "UE_Cap": "PASS"
+        },
+        "final_status": "ENABLED",
+        "filtered_at": null
+      },
+      {
+        "band_num": 2,
+        "band_type": "NR_NSA",
+        "stages": {
+          "RFC": "PASS",
+          "HW_Filter": "PASS",
+          "Carrier": "PASS",
+          "Generic": "PASS",
+          "NV_Pref": "NA",
+          "QXDM": "PASS",
+          "UE_Cap": "PASS"
+        },
+        "final_status": "ENABLED",
+        "filtered_at": null
+      },
+      {
+        "band_num": 3,
+        "band_type": "NR_NSA",
+        "stages": {
+          "RFC": "PASS",
+          "HW_Filter": "PASS",
+          "Carrier": "PASS",
+          "Generic": "PASS",
+          "NV_Pref": "NA",
+          "QXDM": "PASS",
+          "UE_Cap": "PASS"
+        },
+        "final_status": "ENABLED",
+        "filtered_at": null
+      },
+      {
+        "band_num": 5,
+        "band_type": "NR_NSA",
+        "stages": {
+          "RFC": "PASS",
+          "HW_Filter": "PASS",
+          "Carrier": "PASS",
+          "Generic": "PASS",
+          "NV_Pref": "NA",
+          "QXDM": "PASS",
+          "UE_Cap": "PASS"
+        },
+        "final_status": "ENABLED",
+        "filtered_at": null
+      },
+      {
+        "band_num": 7,
+        "band_type": "NR_NSA",
+        "stages": {
+          "RFC": "PASS",
+          "HW_Filter": "PASS",
+          "Carrier": "PASS",
+          "Generic": "PASS",
+          "NV_Pref": "NA",
+          "QXDM": "PASS",
+          "UE_Cap": "PASS"
+        },
+        "final_status": "ENABLED",
+        "filtered_at": null
+      },
+      {
+        "band_num": 8,
+        "band_type": "NR_NSA",
+        "stages": {
+          "RFC": "PASS",
+          "HW_Filter": "PASS",
+          "Carrier": "PASS",
+          "Generic": "PASS",
+          "NV_Pref": "NA",
+          "QXDM": "PASS",
+          "UE_Cap": "PASS"
+        },
+        "final_status": "ENABLED",
+        "filtered_at": null
+      },
+      {
+        "band_num": 12,
+        "band_type": "NR_NSA",
+        "stages": {
+          "RFC": "FAIL",
+          "HW_Filter": "SKIPPED",
+          "Carrier": "SKIPPED",
+          "Generic": "SKIPPED",
+          "NV_Pref": "SKIPPED",
+          "QXDM": "FAIL",
+          "UE_Cap": "FAIL"
+        },
+        "final_status": "NOT_SUPPORTED",
+        "filtered_at": "RFC"
+      },
+      {
+        "band_num": 14,
+        "band_type": "NR_NSA",
+        "stages": {
+          "RFC": "FAIL",
+          "HW_Filter": "SKIPPED",
+          "Carrier": "SKIPPED",
+          "Generic": "SKIPPED",
+          "NV_Pref": "SKIPPED",
+          "QXDM": "FAIL",
+          "UE_Cap": "FAIL"
+        },
+        "final_status": "NOT_SUPPORTED",
+        "filtered_at": "RFC"
+      },
+      {
+        "band_num": 20,
+        "band_type": "NR_NSA",
+        "stages": {
+          "RFC": "PASS",
+          "HW_Filter": "PASS",
+          "Carrier": "PASS",
+          "Generic": "PASS",
+          "NV_Pref": "NA",
+          "QXDM": "PASS",
+          "UE_Cap": "PASS"
+        },
+        "final_status": "ENABLED",
+        "filtered_at": null
+      },
+      {
+        "band_num": 25,
+        "band_type": "NR_NSA",
+        "stages": {
+          "RFC": "FAIL",
+          "HW_Filter": "SKIPPED",
+          "Carrier": "SKIPPED",
+          "Generic": "SKIPPED",
+          "NV_Pref": "SKIPPED",
+          "QXDM": "FAIL",
+          "UE_Cap": "FAIL"
+        },
+        "final_status": "NOT_SUPPORTED",
+        "filtered_at": "RFC"
+      },
+      {
+        "band_num": 26,
+        "band_type": "NR_NSA",
+        "stages": {
+          "RFC": "PASS",
+          "HW_Filter": "PASS",
+          "Carrier": "PASS",
+          "Generic": "PASS",
+          "NV_Pref": "NA",
+          "QXDM": "PASS",
+          "UE_Cap": "PASS"
+        },
+        "final_status": "ENABLED",
+        "filtered_at": null
+      },
+      {
+        "band_num": 28,
+        "band_type": "NR_NSA",
+        "stages": {
+          "RFC": "PASS",
+          "HW_Filter": "PASS",
+          "Carrier": "PASS",
+          "Generic": "PASS",
+          "NV_Pref": "NA",
+          "QXDM": "PASS",
+          "UE_Cap": "PASS"
+        },
+        "final_status": "ENABLED",
+        "filtered_at": null
+      },
+      {
+        "band_num": 30,
+        "band_type": "NR_NSA",
+        "stages": {
+          "RFC": "FAIL",
+          "HW_Filter": "SKIPPED",
+          "Carrier": "SKIPPED",
+          "Generic": "SKIPPED",
+          "NV_Pref": "SKIPPED",
+          "QXDM": "FAIL",
+          "UE_Cap": "FAIL"
+        },
+        "final_status": "NOT_SUPPORTED",
+        "filtered_at": "RFC"
+      },
+      {
+        "band_num": 38,
+        "band_type": "NR_NSA",
+        "stages": {
+          "RFC": "PASS",
+          "HW_Filter": "PASS",
+          "Carrier": "PASS",
+          "Generic": "PASS",
+          "NV_Pref": "NA",
+          "QXDM": "PASS",
+          "UE_Cap": "PASS"
+        },
+        "final_status": "ENABLED",
+        "filtered_at": null
+      },
+      {
+        "band_num": 40,
+        "band_type": "NR_NSA",
+        "stages": {
+          "RFC": "PASS",
+          "HW_Filter": "PASS",
+          "Carrier": "PASS",
+          "Generic": "PASS",
+          "NV_Pref": "NA",
+          "QXDM": "PASS",
+          "UE_Cap": "PASS"
+        },
+        "final_status": "ENABLED",
+        "filtered_at": null
+      },
+      {
+        "band_num": 41,
+        "band_type": "NR_NSA",
+        "stages": {
+          "RFC": "PASS",
+          "HW_Filter": "PASS",
+          "Carrier": "PASS",
+          "Generic": "PASS",
+          "NV_Pref": "NA",
+          "QXDM": "PASS",
+          "UE_Cap": "PASS"
+        },
+        "final_status": "ENABLED",
+        "filtered_at": null
+      },
+      {
+        "band_num": 48,
+        "band_type": "NR_NSA",
+        "stages": {
+          "RFC": "FAIL",
+          "HW_Filter": "SKIPPED",
+          "Carrier": "SKIPPED",
+          "Generic": "SKIPPED",
+          "NV_Pref": "SKIPPED",
+          "QXDM": "FAIL",
+          "UE_Cap": "FAIL"
+        },
+        "final_status": "NOT_SUPPORTED",
+        "filtered_at": "RFC"
+      },
+      {
+        "band_num": 66,
+        "band_type": "NR_NSA",
+        "stages": {
+          "RFC": "PASS",
+          "HW_Filter": "PASS",
+          "Carrier": "PASS",
+          "Generic": "PASS",
+          "NV_Pref": "NA",
+          "QXDM": "PASS",
+          "UE_Cap": "PASS"
+        },
+        "final_status": "ENABLED",
+        "filtered_at": null
+      },
+      {
+        "band_num": 70,
+        "band_type": "NR_NSA",
+        "stages": {
+          "RFC": "FAIL",
+          "HW_Filter": "SKIPPED",
+          "Carrier": "SKIPPED",
+          "Generic": "SKIPPED",
+          "NV_Pref": "SKIPPED",
+          "QXDM": "FAIL",
+          "UE_Cap": "FAIL"
+        },
+        "final_status": "NOT_SUPPORTED",
+        "filtered_at": "RFC"
+      },
+      {
+        "band_num": 71,
+        "band_type": "NR_NSA",
+        "stages": {
+          "RFC": "PASS",
+          "HW_Filter": "PASS",
+          "Carrier": "PASS",
+          "Generic": "PASS",
+          "NV_Pref": "NA",
+          "QXDM": "PASS",
+          "UE_Cap": "PASS"
+        },
+        "final_status": "ENABLED",
+        "filtered_at": null
+      },
+      {
+        "band_num": 75,
+        "band_type": "NR_NSA",
+        "stages": {
+          "RFC": "PASS",
+          "HW_Filter": "PASS",
+          "Carrier": "PASS",
+          "Generic": "PASS",
+          "NV_Pref": "NA",
+          "QXDM": "PASS",
+          "UE_Cap": "PASS"
+        },
+        "final_status": "ENABLED",
+        "filtered_at": null
+      },
+      {
+        "band_num": 77,
+        "band_type": "NR_NSA",
+        "stages": {
+          "RFC": "PASS",
+          "HW_Filter": "PASS",
+          "Carrier": "PASS",
+          "Generic": "PASS",
+          "NV_Pref": "NA",
+          "QXDM": "PASS",
+          "UE_Cap": "PASS"
+        },
+        "final_status": "ENABLED",
+        "filtered_at": null
+      },
+      {
+        "band_num": 78,
+        "band_type": "NR_NSA",
+        "stages": {
+          "RFC": "PASS",
+          "HW_Filter": "PASS",
+          "Carrier": "PASS",
+          "Generic": "PASS",
+          "NV_Pref": "NA",
+          "QXDM": "PASS",
+          "UE_Cap": "PASS"
+        },
+        "final_status": "ENABLED",
+        "filtered_at": null
+      }
+    ]
+  },
+  "summary": {
+    "lte_total": 28,
+    "lte_enabled": 27,
+    "lte_filtered": 1,
+    "lte_anomalies": 0,
+    "nr_sa_total": 23,
+    "nr_sa_enabled": 20,
+    "nr_sa_filtered": 3,
+    "nr_sa_anomalies": 0,
+    "nr_nsa_total": 23,
+    "nr_nsa_enabled": 17,
+    "nr_nsa_filtered": 0,
+    "nr_nsa_anomalies": 0
+  },
+  "anomalies": [],
+  "errors": [],
+  "mdb_lte": [
+    2,
+    66,
+    4,
+    5,
+    38,
+    7,
+    71,
+    41,
+    12,
+    13,
+    14,
+    46,
+    48,
+    17,
+    25,
+    26,
+    29,
+    30
+  ],
+  "mdb_nr_sa": [
+    2,
+    66,
+    5,
+    70,
+    71,
+    41,
+    77,
+    48,
+    25,
+    26,
+    29
+  ],
+  "mdb_nr_nsa": [
+    2,
+    258,
+    260,
+    5,
+    66,
+    71,
+    261,
+    41,
+    77,
+    25,
+    29
+  ]
+}
