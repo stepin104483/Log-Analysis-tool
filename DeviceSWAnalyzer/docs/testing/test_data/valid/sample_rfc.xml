@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rfc>
+    <eutra_band_list>
+        <band>1</band>
+        <band>3</band>
+        <band>7</band>
+    </eutra_band_list>
+    <nr_sa_band_list>
+        <band>n78</band>
+        <band>n79</band>
+    </nr_sa_band_list>
+</rfc>

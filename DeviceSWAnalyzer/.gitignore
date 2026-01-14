@@ -34,5 +34,17 @@ env/
 # Keep output directory structure
 !output/.gitkeep
 
-# Note: Sample output files are tracked for reference
-# (prompt.txt, claude_review.txt, band_analysis_report.html, analysis_state.json)
+# Ignore generated output files (from E2E tests)
+output/band_analysis_*.html
+output/prompt_*.txt
+output/band_analysis_final_*.html
+
+# Ignore uploads
+uploads/
+
+# Pytest cache
+.pytest_cache/
+
+# Test reports (generated, not needed in repo)
+docs/testing/**/test_report.html
+docs/testing/full_test_report.html

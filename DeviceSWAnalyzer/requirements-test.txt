@@ -1,0 +1,13 @@
+# E2E Testing Dependencies for DeviceSWAnalyzer
+# Install with: pip install -r requirements-test.txt
+
+# Playwright for E2E browser testing
+playwright==1.40.0
+
+# Pytest integration
+pytest==7.4.3
+pytest-playwright==0.4.3
+
+# Additional utilities
+pytest-html==4.1.1      # HTML test reports
+pytest-xdist==3.5.0     # Parallel test execution (optional)
