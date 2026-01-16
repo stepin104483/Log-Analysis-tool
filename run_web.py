@@ -10,11 +10,25 @@ Then open http://localhost:5000 in your browser.
 import os
 import sys
 
-# Add DeviceSWAnalyzer/src to Python path
+# Prevent Python from writing .pyc cache files
+sys.dont_write_bytecode = True
+
+# Add paths in correct order:
+# 1. DeviceSWAnalyzer (for modules.* imports)
+# 2. DeviceSWAnalyzer/src (for web.* and core.* imports)
 script_dir = os.path.dirname(os.path.abspath(__file__))
-src_dir = os.path.join(script_dir, 'DeviceSWAnalyzer', 'src')
+base_dir = os.path.join(script_dir, 'DeviceSWAnalyzer')
+src_dir = os.path.join(base_dir, 'src')
+
+# Add base_dir FIRST so modules.combos finds DeviceSWAnalyzer/modules/
+if base_dir not in sys.path:
+    sys.path.insert(0, base_dir)
 if src_dir not in sys.path:
-    sys.path.insert(0, src_dir)
+    sys.path.insert(1, src_dir)
+
+# Clear module registry cache to ensure fresh module discovery
+from core import ModuleRegistry
+ModuleRegistry.clear()
 
 from web.app import create_app
 
@@ -32,4 +46,5 @@ if __name__ == '__main__':
     print("=" * 60)
     print()
 
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    # Run without debug to avoid caching issues
+    app.run(debug=False, host='0.0.0.0', port=5000)
